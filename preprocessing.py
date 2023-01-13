@@ -12,7 +12,7 @@ def date_range(start, end):
 
 def pad(data,label,size):
     """
-    Pad a 3D array by 'size' along all edges.
+    Pad a 3D array by 'size' along its spatial dimensions.
     If data are velocity files (UI or VI), first compute
     2-pt moving average so that fields are defined on the 
     same tracer grid as scalar fields
