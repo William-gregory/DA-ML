@@ -61,7 +61,7 @@ def Net(x_train,y_train,x_valid,y_valid,args,path=None):
 
     model = CNN(args)
     if path is None:
-        path = 'CNN_weights.pt'
+        path = '../CNN_weights/CNN_weights.pt'
         opt = torch.optim.Adam(model.parameters(),lr=args['lr'],weight_decay=args['wd'])
         loader_train = torch.utils.data.DataLoader(dataset=train_data, batch_size=args['batch_size'], shuffle=True)
         for epoch in range(args['epochs']):
