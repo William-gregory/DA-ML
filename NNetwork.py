@@ -30,6 +30,9 @@ class CNN(nn.Module):
     def forward(self, x):
         return self.conv_net(x)
     
+def get_ten(x):
+    return torch.from_numpy(x.astype(np.float32))
+    
 def Net(x_train,y_train,x_valid,y_valid,args,path=None):
     """
     Function to train CNN and/or perform inference.
@@ -43,6 +46,14 @@ def Net(x_train,y_train,x_valid,y_valid,args,path=None):
     """
     
     torch.manual_seed(args['seed'])
+    
+    x_train = get_ten(x_train)
+    y_train = get_ten(y_train)
+    x_valid = get_ten(x_valid)
+    y_valid = get_ten(y_valid)
+    if y_train.ndim == 3:
+        y_train = y_train[:,None,...]
+        y_valid = y_valid[:,None,...]
     
     args['n_channels'] = x_train.shape[1]
     args['n_classes'] = y_train.shape[1]
