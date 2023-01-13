@@ -32,7 +32,7 @@ def pad(data,label,size):
 
 def states(data,subset):
     """
-    Compute 5-day means of DA foreast states
+    Compute 5-day means of DA forecast states
     """
     return xr.concat([data.isel(time=np.arange(x-5,x)).mean('time') for x in subset],dim='time')
 
