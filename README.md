@@ -4,4 +4,10 @@ This repository contains code and data relating to work as part of the [M2LInES]
 
 ### Network Training
 
-The networks have been trained in `PyTorch`, and the weights for each network are saved in the CNN_weights folder. The weights labelled 'CV' are those generated from cross-validation experiments to assess the network's generalization performance. Those labelled 'allsamples' have been trained using all data points, and should be used for subsequent analysis.
+For details on the data pre-processing, network architectures, and cross-validation testing, please see the code in the `DA-ML.ipynb` notebook. Dependencies for the code include:
+
+`PyTorch`\
+`Xarray`\
+`Cartopy`
+
+The weights for each network are saved in the CNN_weights folder. The weights labelled 'CV' are those generated from cross-validation experiments to assess the network's generalization performance. Those labelled 'allsamples' have been trained using all data points, and should be used for subsequent analysis.
