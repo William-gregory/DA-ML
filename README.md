@@ -10,4 +10,4 @@ For details on the data pre-processing, network architectures, and cross-validat
 `Xarray`\
 `Cartopy`
 
-The weights for each network are saved in the CNN_weights folder. The weights labelled 'CV' are those generated from cross-validation experiments to assess the network's generalization performance. Those labelled 'allsamples' have been trained using all data points, and should be used for subsequent analysis.
+The optimized weights for each network are saved in the CNN_weights folder. The weights labelled 'CV' are those generated from cross-validation experiments to assess the network's generalization performance. Those labelled 'allsamples' have been trained using all data points, and should be used for subsequent analysis.
