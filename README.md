@@ -14,4 +14,4 @@ The optimized weights for each network are saved in the `CNN_weights` folder. We
 
 ### Data
 
-The data used to train the networks, as outlined in the paper, are hosted on a permanent ftp server: `ftp://sftp.gfdl.noaa.gov/perm/William.Gregory/`. The inputs to the network are stored in the directory `SICDA_forecasts_F02`, while the outputs are stored in `SICDA_increments_F02`. Each input data file is considerably large (approx 11GB), hence direct download may be very slow. Therefore we are currently in the process of hosting the data as a Pangeo-forge feedstock (see pull request: https://github.com/pangeo-forge/staged-recipes/pull/140). When this is complete, all of the data for this study will be available as Analysis-Ready Cloud-Optimized (ARCO) format, Zarr, data.
+The data used to train the networks, as outlined in the paper, are hosted on a permanent ftp server: `ftp://sftp.gfdl.noaa.gov/perm/William.Gregory/`. The inputs to the network are saved as `seaice_DA-ML_inputs_1982-2017.nc`, while the outputs (increments) are `seaice_DA-ML_outputs_1982-2017.nc`. These can be directly downloaded with e.g., `wget` (see jupyter notebook).
