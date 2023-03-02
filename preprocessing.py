@@ -7,10 +7,10 @@ def pad(data,label,size):
     2-pt moving average so that fields are defined on the 
     same tracer grid as scalar fields
     """
-    if label == 'UI':
+    if label == 'SIU':
         data = np.nansum([data[:,:,1:],data[:,:,:-1]],0)/2
         sign = -1
-    elif label == 'VI':
+    elif label == 'SIV':
         data = np.nansum([data[:,1:],data[:,:-1]],0)/2
         sign = -1
     else:
