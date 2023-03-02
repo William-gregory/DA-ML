@@ -45,6 +45,11 @@ def Net(x_train,y_train,x_valid,y_valid,args,path=None):
     
     torch.manual_seed(args['seed'])
     
+    x_train[np.isnan(x_train)] = 0
+    x_valid[np.isnan(x_valid)] = 0
+    y_train[np.isnan(y_train)] = 0
+    y_valid[np.isnan(y_valid)] = 0
+    
     x_train = torch.from_numpy(x_train.astype(np.float32))
     y_train = torch.from_numpy(y_train.astype(np.float32))
     x_valid = torch.from_numpy(x_valid.astype(np.float32))
