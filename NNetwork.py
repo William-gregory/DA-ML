@@ -31,7 +31,7 @@ class CNN(nn.Module):
     def forward(self, x):
         return self.conv_net(x)
     
-def Net(x_train,y_train=None,x_valid=None,y_valid=None,args=None,path=None):
+def Net(x_train,args,y_train=None,x_valid=None,y_valid=None,path=None):
     """
     Function to train CNN and/or perform inference.
     Can either provide a 'path' to the pre-computed network weights,
