@@ -3,6 +3,12 @@ import xarray as xr
 from preprocessing import pad
 from NNetwork import *
 
+def LossA(outputs, targets):
+    return torch.mean((outputs-targets)**2)
+  
+def LossB(outputs, targets):
+    return torch.sum(torch.mean((outputs-targets)**2,(0,2,3)) + 5*torch.mean((torch.sum(outputs,1)-torch.sum(targets,1))**2)
+
 argsA = {
 'kernel_size':3,
 'epochs':150,
@@ -12,6 +18,8 @@ argsA = {
 'h_channels':[32,64,128],
 'n_classes':1,
 'stride':1,
+'loss':LossA,
+'wd':1e-7,
 'bias':False,
 'seed':711,
 }
@@ -25,6 +33,8 @@ argsB = {
 'h_channels':[32,64,128],
 'n_classes':5,
 'stride':1,
+'loss':LossB,
+'wd':1e-7,
 'bias':False,
 'seed':711,
 }
