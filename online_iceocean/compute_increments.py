@@ -34,7 +34,7 @@ files = sorted(glob.glob('*ice_daily*'))
 f = xr.open_mfdataset(files,combine='nested',concat_dim='ens')
 states = f.mean('time')
 tend = f.diff('time').mean('time')
-nmembers = len(files)
+nmembers = len(f.ens)
 yT = len(f.yT)
 xT = len(f.xT)
 scaling = len(f.time)/5 #applied to the increments at the end in case the correction is applied at different frequencies, e.g., 2-day vs 5-day etc.
