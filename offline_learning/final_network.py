@@ -1,6 +1,5 @@
 import numpy as np
 import xarray as xr
-import glob
 from preprocessing import pad
 from NNetwork import *
 
@@ -19,7 +18,7 @@ argsA = {
 
 argsB = {
 'kernel_size':1,
-'epochs':150,
+'epochs':125,
 'lr':0.001,
 'batch_size':10,
 'zero_padding':0,
@@ -68,8 +67,8 @@ dSIC[land_mask[:,4:-4,4:-4]==0] = 0
 ### NETWORK B ###                                                                                                                                                                  
 X = [dSIC]
 for CAT in range(5):
-    X.append(states['SICN'].isel(ct=CAT).to_numpy()[None])
-    X.append(tend['SICN'].isel(ct=CAT).to_numpy()[None])
+    X.append(forecasts['SICN'].isel(n=0,ct=CAT).to_numpy()[None])
+    X.append(forecasts['SICN'].isel(n=1,ct=CAT).to_numpy()[None])
 X = np.transpose(X,(1,0,2,3))
 
 X = np.hstack((X,land_mask[:,None,4:-4,4:-4]))
@@ -84,4 +83,4 @@ for CAT in range(5):
     dSICN_pred[:,CAT][land_mask[:,4:-4,4:-4]==0] = 0
 dSICN[member] = dSICN_pred
 
-np.save('dSICN_increment.npy',dSICN)
+np.save('dSICN_increment_1982-2017_allsamples.npy',dSICN)
