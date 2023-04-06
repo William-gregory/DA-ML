@@ -47,8 +47,8 @@ NetworkB_stats = np.load('../data_files/NetworkB_statistics_1982-2017_allsamples
                                                                                                                                                                    
 inputs = ['SIC','SST','SIU','SIV','SIT','SW','TS','SSS']
 
-forecasts = xr.open_dataset('seaice_DAML_inputs_1982-2017.nc')
-increments = xr.open_dataset('seaice_DAML_outputs_1982-2017.nc')
+forecasts = xr.open_dataset('seaice_DA-ML_inputs_1982-2017.nc')
+increments = xr.open_dataset('seaice_DA-ML_outputs_1982-2017.nc')
 dSIC = increments.dSIC.to_numpy()
 dSICN = increments.dSICN.to_numpy()
 
