@@ -11,8 +11,8 @@ def pp(x):
     SIC = np.nansum(x,0)
     high = SIC>1
     ratio = 1/SIC[high]
-    for CN in range(5):
-        x[CN,high] = x[CN,high]*ratio
+    for CAT in range(5):
+        x[CAT,high] = x[CAT,high]*ratio
     return x
 
 def enthalpy_ice(zTin,zSin):
