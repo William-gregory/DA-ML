@@ -2,7 +2,7 @@
 
 CNN correction is applied back into SPEAR ice-ocean simulations as a bias correction tool. This is implemented as post-processing to a short model forecast. E.g. in an xml script, this would be implemented in the following way:
 
-<freInclude name="OM4_postprocess">
+`<freInclude name="OM4_postprocess">
       <postProcess>
          <csh><![CDATA[ 
          
@@ -15,4 +15,4 @@ CNN correction is applied back into SPEAR ice-ocean simulations as a bias correc
              csh DAML.csh >& log_CNN.out                                                                                                                                               
              rm log_CNN.out                                                                                                                                                            
              rm DAML.csh                                                                                                                                                               
-         endif
+         endif`
