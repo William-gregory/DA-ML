@@ -37,10 +37,11 @@ tend = f.diff('time').mean('time')
 nmembers = len(files)
 
 dSICN = np.zeros((nmembers,1,5,320,360))
-
-### NETWORK A ###                                                                                                                                                                      
+                                                                                                                                                                   
 inputs = ['siconc','SST','UI','VI','HI','SW','TS','SSS']
 for member in range(nmembers):
+    
+    ### NETWORK A ### 
     X = []
     for label in inputs:
         X.append(pad(states[label].isel(ens=member).to_numpy()[None],label,4))
@@ -55,11 +56,11 @@ for member in range(nmembers):
     X = np.hstack((X,land_mask[:,None]))
     X[np.isnan(X)] = 0
 
-    for N in range(X.shape[1]-1):
-        X[:,N] = (X[:,N]-NetworkA_stats['mu'][N])/NetworkA_stats['sigma'][N]
+    for N in range(X.shape[1]-1): 
+        X[:,N] = (X[:,N]-NetworkA_stats['mu'][N])/NetworkA_stats['sigma'][N] #standardize inputs
         X[:,N][land_mask==0] = 0
 
-    dSIC = Net(X,argsA,path=NetworkA_weights)[:,0]
+    dSIC = Net(X,argsA,path=NetworkA_weights)[:,0] #generate aggregate SIC increment prediction
     dSIC[land_mask[:,4:-4,4:-4]==0] = 0
     
     ### NETWORK B ###                                                                                                                                                                  
@@ -73,10 +74,10 @@ for member in range(nmembers):
     X[np.isnan(X)]
 
     for N in range(X.shape[1]-1):
-        X[:,N] = (X[:,N]-NetworkB_stats['mu'][N])/NetworkB_stats['sigma'][N]
+        X[:,N] = (X[:,N]-NetworkB_stats['mu'][N])/NetworkB_stats['sigma'][N] #standardize inputs
         X[:,N][land_mask[:,4:-4,4:-4]==0] = 0
 
-    dSICN_pred = Net(X,argsB,path=NetworkB_weights)
+    dSICN_pred = Net(X,argsB,path=NetworkB_weights) #generate category SIC increment prediction
     for CAT in range(5):
         dSICN_pred[:,CAT][land_mask[:,4:-4,4:-4]==0] = 0
     dSICN[member] = dSICN_pred
