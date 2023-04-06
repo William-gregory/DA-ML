@@ -17,7 +17,7 @@ The CNN correction is applied back into SPEAR ice-ocean simulations as a bias co
                  rm DAML.csh
              endif
              
-             ... rest of post-processing script follows as normal
+             # rest of post-processing script follows as normal
              
 To then run the model as a series of short forecasts the exectuable needs to be adjusted (this is done *after* running frerun). An example of which parts of the executable need to be changed in order to run a 4-year simulation, with the CNN correction being applied every 5 days is shown below:
 
