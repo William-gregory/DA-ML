@@ -54,6 +54,7 @@ forecasts = xr.open_dataset('seaice_DA-ML_inputs_1982-2017.nc')
 increments = xr.open_dataset('seaice_DA-ML_outputs_1982-2017.nc')
 dSIC = increments.dSIC.to_numpy()
 dSICN = increments.dSICN.to_numpy()
+lat = xr.open_dataset('../data_files/ice.static.nc').GEOLAT.to_numpy()
 
 ### NETWORK A ### 
 X = []
