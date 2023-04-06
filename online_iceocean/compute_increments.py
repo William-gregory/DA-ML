@@ -34,12 +34,13 @@ files = sorted(glob.glob('*ice_daily*'))
 f = xr.open_mfdataset(files,combine='nested',concat_dim='ens')
 states = f.mean('time')
 tend = f.diff('time').mean('time')
+nmembers = len(files)
 
-dSICN = np.zeros((30,1,5,320,360))
+dSICN = np.zeros((nmembers,1,5,320,360))
 
 ### NETWORK A ###                                                                                                                                                                      
 inputs = ['siconc','SST','UI','VI','HI','SW','TS','SSS']
-for member in range(30):
+for member in range(nmembers):
     X = []
     for label in inputs:
         X.append(pad(states[label].isel(ens=member).to_numpy()[None],label,4))
@@ -63,9 +64,9 @@ for member in range(30):
     
     ### NETWORK B ###                                                                                                                                                                  
     X = [dSIC]
-    for CN in range(5):
-        X.append(states['CN'].isel(ct=CN,ens=member).to_numpy()[None])
-        X.append(tend['CN'].isel(ct=CN,ens=member).to_numpy()[None])
+    for CAT in range(5):
+        X.append(states['CN'].isel(ct=CAT,ens=member).to_numpy()[None])
+        X.append(tend['CN'].isel(ct=CAT,ens=member).to_numpy()[None])
     X = np.transpose(X,(1,0,2,3))
 
     X = np.hstack((X,land_mask[:,None,4:-4,4:-4]))
@@ -76,8 +77,8 @@ for member in range(30):
         X[:,N][land_mask[:,4:-4,4:-4]==0] = 0
 
     dSICN_pred = Net(X,argsB,path=NetworkB_weights)
-    for CN in range(5):
-        dSICN_pred[:,CN][land_mask[:,4:-4,4:-4]==0] = 0
+    for CAT in range(5):
+        dSICN_pred[:,CAT][land_mask[:,4:-4,4:-4]==0] = 0
     dSICN[member] = dSICN_pred
 
 np.save('dSICN_increment.npy',dSICN)
