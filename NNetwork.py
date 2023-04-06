@@ -31,7 +31,7 @@ class CNN(nn.Module):
     def forward(self, x):
         return self.conv_net(x)
     
-def Net(x_train,y_train,x_valid,y_valid,args,path=None):
+def Net(x_train,y_train=None,x_valid=None,y_valid=None,args=None,path=None):
     """
     Function to train CNN and/or perform inference.
     Can either provide a 'path' to the pre-computed network weights,
@@ -44,45 +44,56 @@ def Net(x_train,y_train,x_valid,y_valid,args,path=None):
     """
     
     torch.manual_seed(args['seed'])
+    model = CNN(args)
     
     x_train[np.isnan(x_train)] = 0
-    x_valid[np.isnan(x_valid)] = 0
-    y_train[np.isnan(y_train)] = 0
-    y_valid[np.isnan(y_valid)] = 0
-    
     x_train = torch.from_numpy(x_train.astype(np.float32))
-    y_train = torch.from_numpy(y_train.astype(np.float32))
-    x_valid = torch.from_numpy(x_valid.astype(np.float32))
-    y_valid = torch.from_numpy(y_valid.astype(np.float32))
-    if y_train.ndim == 3:
-        y_train = y_train[:,None,...]
-        y_valid = y_valid[:,None,...]
-    
     args['n_channels'] = x_train.shape[1]
-    args['n_classes'] = y_train.shape[1]
-
-    train_data = torch.utils.data.TensorDataset(x_train,y_train)
-    test_data = torch.utils.data.TensorDataset(x_valid,y_valid)
-
-    model = CNN(args)
-    if path is None:
-        path = '../CNN_weights/CNN_weights.pt'
-        opt = torch.optim.Adam(model.parameters(),lr=args['lr'],weight_decay=args['wd'])
-        loader_train = torch.utils.data.DataLoader(dataset=train_data, batch_size=args['batch_size'], shuffle=True)
-        for epoch in range(args['epochs']):
-            for x_,y_ in loader_train:
-                opt.zero_grad()
-                loss = args['loss'](model(x_),y_)
-                loss.backward()
-                opt.step()
-        torch.save(model.state_dict(),path)
-    else:
+    if y_train is None: #just generate a prediction based on the given inputs and weights
         model.load_state_dict(torch.load(path,map_location=torch.device('cpu')))
         model.eval()
-    f = []
-    loader_test = torch.utils.data.DataLoader(dataset=test_data, batch_size=args['batch_size'], shuffle=False)
-    with torch.no_grad():
-        for xs_,ys_ in loader_test:
-            f.append(model(xs_))
-    predictions = torch.cat(f).numpy()
-    return predictions
+        with torch.no_grad():
+            return model(x_train).numpy()
+        
+    else:
+        y_train[np.isnan(y_train)] = 0
+        y_train = torch.from_numpy(y_train.astype(np.float32))
+    
+        if x_valid is not None:
+            x_valid[np.isnan(x_valid)] = 0
+            y_valid[np.isnan(y_valid)] = 0
+  
+            x_valid = torch.from_numpy(x_valid.astype(np.float32))
+            y_valid = torch.from_numpy(y_valid.astype(np.float32))
+    
+        if y_train.ndim == 3:
+            y_train = y_train[:,None,...]
+            if x_valid is not None:
+                y_valid = y_valid[:,None,...]
+   
+        args['n_classes'] = y_train.shape[1]
+
+        train_data = torch.utils.data.TensorDataset(x_train,y_train)
+        test_data = torch.utils.data.TensorDataset(x_valid,y_valid)
+    
+
+        if path is None:
+            path = '../CNN_weights/CNN_weights.pt'
+            opt = torch.optim.Adam(model.parameters(),lr=args['lr'],weight_decay=args['wd'])
+            loader_train = torch.utils.data.DataLoader(dataset=train_data, batch_size=args['batch_size'], shuffle=True)
+            for epoch in range(args['epochs']):
+                for x_,y_ in loader_train:
+                    opt.zero_grad()
+                    loss = args['loss'](model(x_),y_)
+                    loss.backward()
+                    opt.step()
+            torch.save(model.state_dict(),path)
+        else:
+            model.load_state_dict(torch.load(path,map_location=torch.device('cpu')))
+            model.eval()
+        f = []
+        loader_test = torch.utils.data.DataLoader(dataset=test_data, batch_size=args['batch_size'], shuffle=False)
+        with torch.no_grad():
+            for xs_,ys_ in loader_test:
+                f.append(model(xs_))
+        return torch.cat(f).numpy()
