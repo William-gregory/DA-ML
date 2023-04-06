@@ -75,7 +75,7 @@ for member in range(nmembers):
     X = np.transpose(X,(1,0,2,3))
 
     X = np.hstack((X,land_mask[:,None,4:-4,4:-4]))
-    X[np.isnan(X)]
+    X[np.isnan(X)] = 0
 
     for N in range(X.shape[1]-1):
         X[:,N] = (X[:,N]-NetworkB_stats['mu'][N])/NetworkB_stats['sigma'][N] #standardize inputs
