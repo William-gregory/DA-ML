@@ -1,8 +1,8 @@
 #!/bin/csh -fx                                                                                                                                                                         
 
 cd ../
-cp /ncrc/home2/William.Gregory/DA-ML/compute_increments.py .
-cp /ncrc/home2/William.Gregory/DA-ML/update_model_state.py RESTART/.
+cp compute_increments.py .
+cp update_model_state.py RESTART/.
 
 python compute_increments.py
 rm compute_increments.py
