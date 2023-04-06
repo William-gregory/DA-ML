@@ -6,7 +6,7 @@ The CNN correction is applied back into SPEAR ice-ocean simulations as a bias co
         <postProcess>
             <csh><![CDATA[ 
          
-             #Implementing DA-based CNN correction scheme:
+             # implementing DA-based CNN correction scheme:
              cd $work/RESTART
              if (! -e coupler.res) then
                  echo model still running
