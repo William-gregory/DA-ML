@@ -47,10 +47,7 @@ argsB = {
 
 NetworkA_weights = '../CNN_weights/NetworkA_weights_1982-2017_allsamples.pt'
 NetworkB_weights = '../CNN_weightsNetworkB_weights_1982-2017_allsamples.pt'
-
-NetworkA_stats = np.load('../data_files/NetworkA_statistics_1982-2017_allsamples.npz')
-NetworkB_stats = np.load('../data_files/NetworkB_statistics_1982-2017_allsamples.npz')
-                                                                                                                                                                   
+                                                                       
 inputs = ['SIC','SST','SIU','SIV','SIT','SW','TS','SSS']
 
 forecasts = xr.open_dataset('seaice_DA-ML_inputs_1982-2017.nc')
@@ -73,9 +70,25 @@ land_mask[:,:4] = 0
 X = np.hstack((X,land_mask[:,None]))
 X[np.isnan(X)] = 0
 
-for N in range(X.shape[1]-1): 
-    X[:,N] = (X[:,N]-NetworkA_stats['mu'][N])/NetworkA_stats['sigma'][N] #standardize inputs
-    X[:,N][land_mask==0] = 0
+if os.path.exists('../data_files/NetworkA_statistics_1982-2017_allsamples.npz')
+    stats = np.load('../data_files/NetworkA_statistics_1982-2017_allsamples.npz')
+    for N in range(X.shape[1]-1): 
+        X[:,N] = (X[:,N]-stats['mu'][N])/stats['sigma'][N] #standardize inputs
+        X[:,N][land_mask==0] = 0
+else:   
+    #compute statistics over ocean grid cells above 40 degrees latitude:
+    NH = np.where((lat>40) & (land_mask[0,pad_size:-pad_size,pad_size:-pad_size]==1))
+    SH = np.where((lat<-40) & (land_mask[0,pad_size:-pad_size,pad_size:-pad_size]==1))
+    IDs = (np.concatenate((NH[0],SH[0])),np.concatenate((NH[1],SH[1]))) 
+    mu = np.zeros(X.shape[1]-1)
+    sigma = np.zeros(X.shape[1]-1)
+    for N in range(X.shape[1]-1):
+        X_nopad = X[:,N,pad_size:-pad_size,pad_size:-pad_size]
+        mu[N] = np.nanmean(X_nopad[:,IDs[0],IDs[1]])
+        sigma[N] = np.nanstd(X_nopad[:,IDs[0],IDs[1]])
+        X[:,N] = (X[:,N]-mu[N])/sigma[N]
+        X[:,N][land_mask==0] = 0
+    np.savez('../data_files/NetworkA_statistics_1982-2017_allsamples.npz',mu=mu,sigma=sigma)
 
 dSIC = Net(X,argsA,y_train=dSIC,x_valid=X,y_valid=dSIC,path=NetworkA_weights)[:,0] #generate aggregate SIC increment prediction
 dSIC[land_mask[:,4:-4,4:-4]==0] = 0
@@ -88,11 +101,27 @@ for CAT in range(5):
 X = np.transpose(X,(1,0,2,3))
 
 X = np.hstack((X,land_mask[:,None,4:-4,4:-4]))
-X[np.isnan(X)]
+X[np.isnan(X)] = 0
 
-for N in range(X.shape[1]-1):
-    X[:,N] = (X[:,N]-NetworkB_stats['mu'][N])/NetworkB_stats['sigma'][N] #standardize inputs
-    X[:,N][land_mask[:,4:-4,4:-4]==0] = 0
+if os.path.exists('../data_files/NetworkB_statistics_1982-2017_allsamples.npz')
+    stats = np.load('../data_files/NetworkB_statistics_1982-2017_allsamples.npz')
+    for N in range(X.shape[1]-1): 
+        X[:,N] = (X[:,N]-stats['mu'][N])/stats['sigma'][N] #standardize inputs
+        X[:,N][land_mask==0] = 0
+else:   
+    #compute statistics over ocean grid cells above 40 degrees latitude:
+    NH = np.where((lat>40) & (land_mask[0,pad_size:-pad_size,pad_size:-pad_size]==1))
+    SH = np.where((lat<-40) & (land_mask[0,pad_size:-pad_size,pad_size:-pad_size]==1))
+    IDs = (np.concatenate((NH[0],SH[0])),np.concatenate((NH[1],SH[1]))) 
+    mu = np.zeros(X.shape[1]-1)
+    sigma = np.zeros(X.shape[1]-1)
+    for N in range(X.shape[1]-1):
+        X_nopad = X[:,N,pad_size:-pad_size,pad_size:-pad_size]
+        mu[N] = np.nanmean(X_nopad[:,IDs[0],IDs[1]])
+        sigma[N] = np.nanstd(X_nopad[:,IDs[0],IDs[1]])
+        X[:,N] = (X[:,N]-mu[N])/sigma[N]
+        X[:,N][land_mask==0] = 0
+    np.savez('../data_files/NetworkB_statistics_1982-2017_allsamples.npz',mu=mu,sigma=sigma)
 
 dSICN_pred = Net(X,argsB,y_train=dSICN,x_valid=X,y_valid=dSICN,path=NetworkB_weights) #generate category SIC increment prediction
 for CAT in range(5):
