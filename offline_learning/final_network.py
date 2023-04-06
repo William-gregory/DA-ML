@@ -1,7 +1,13 @@
+import os
 import numpy as np
 import xarray as xr
 from preprocessing import pad
 from NNetwork import *
+
+if os.path.exists('seaice_DA-ML_inputs_1982-2017.nc')==False:
+    os.system('wget -nv ftp://sftp.gfdl.noaa.gov/perm/William.Gregory/seaice_DA-ML_inputs_1982-2017.nc')
+if os.path.exists('seaice_DA-ML_outputs_1982-2017.nc')==False:
+    os.system('wget -nv ftp://sftp.gfdl.noaa.gov/perm/William.Gregory/seaice_DA-ML_outputs_1982-2017.nc')
 
 def LossA(outputs, targets):
     return torch.mean((outputs-targets)**2)
