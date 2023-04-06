@@ -3,6 +3,10 @@ import glob
 import numpy as np
 
 def pp(x):
+    """
+    post-processing to ensure updated sea ice concentration
+    is bounded between 0 and 1.
+    """
     x[x<0] = 0
     SIC = np.nansum(x,0)
     high = SIC>1
@@ -12,6 +16,12 @@ def pp(x):
     return x
 
 def enthalpy_ice(zTin,zSin):
+    """
+    compute enthalpy of ice based on liquidus temperature
+    and salinity of mushy ice. Used to create a new 'sea ice
+    profile' in the case the CNN adds ice to grid cell which 
+    was previously ice-free.
+    """
     cp_wtr  = 4200
     cp_ice  = 2100
     Lfresh  = 3.34e5
@@ -20,6 +30,11 @@ def enthalpy_ice(zTin,zSin):
     return cp_wtr*zTin + cp_ice*(zTin - Tm) + (cp_wtr - cp_ice)*Tm*np.log(zTin/Tm) + Lfresh*(Tm/zTin-1)
   
 def liquidus_temperature_mush(Sbr):
+    """
+    compute liquidus temp of ice based on salinity of mushy ice. 
+    Used to create a new 'sea ice profile' in the case the CNN adds
+    ice to grid cell which was previously ice-free.
+    """
     Sb_liq =  123.66702800276086
     c1      = 1.0
     c1000   = 1000
@@ -46,8 +61,8 @@ def liquidus_temperature_mush(Sbr):
     return ((Sbr / (M1_liq + N1_liq * Sbr)) + O1_liq) * t_high + ((Sbr / (M2_liq + N2_liq * Sbr)) + O2_liq) * (1.0 - t_high)
   
   
-dSICN = np.load('dSICN_increment.npy')
-files = sorted(glob.glob('ice_model.res*'))
+dSICN = np.load('dSICN_increment.npy') #category increments computed during simulation
+files = sorted(glob.glob('ice_model.res*')) #prior model states (raw RESTART files)
 rho_ice = 905.
 rho_snow= 330.
 phi_init = 0.75 #initial liquid fraction of frazil ice                                                                                                                                 
@@ -67,8 +82,8 @@ for member,file in enumerate(files):
     post[post<0] = 0
     post[post>1] = 1
 
-    cond1 = np.where((prior[:,1:]<=0) & (post[:,1:]>0))
-    cond2 = np.where((prior[:,1:]>0) & (post[:,1:]<=0))
+    cond1 = np.where((prior[:,1:]<=0) & (post[:,1:]>0)) #where original state was ice-free, but CNN has added ice
+    cond2 = np.where((prior[:,1:]>0) & (post[:,1:]<=0)) #where original state contained ice, but CNN has made ice-free
 
     h_ice = f.h_ice.to_numpy()
     h_ice[cond1] = i_thick[cond1]
