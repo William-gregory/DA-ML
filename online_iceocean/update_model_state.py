@@ -73,7 +73,7 @@ hlim = [1.0e-10, 0.1, 0.3, 0.7, 1.1, 1.5]
 hmid = np.array([0.5*(hlim[n]+hlim[n+1]) for n in range(5)])
 i_thick = np.tile((hmid*rho_ice)[None,:,None,None],(1,1,320,360))
 
-for member,file in enumerate(files):
+for member,file in enumerate(files): #add increment to each ensemble member
     f = xr.open_dataset(file)
     prior = f.part_size.to_numpy()
     post = np.zeros((1,6,320,360))
