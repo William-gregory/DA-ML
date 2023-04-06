@@ -36,7 +36,7 @@ states = f.mean('time')
 tend = f.diff('time').mean('time')
 nmembers = len(files)
 
-dSICN = np.zeros((nmembers,1,5,320,360))
+dSICN = np.zeros((nmembers,1,5,320,360)) #compute an increment for every ensemble member
                                                                                                                                                                    
 inputs = ['siconc','SST','UI','VI','HI','SW','TS','SSS']
 for member in range(nmembers):
@@ -82,4 +82,4 @@ for member in range(nmembers):
         dSICN_pred[:,CAT][land_mask[:,4:-4,4:-4]==0] = 0
     dSICN[member] = dSICN_pred
 
-np.save('dSICN_increment.npy',dSICN)
+np.save('dSICN_increment.npy',dSICN) #This assumes the correction is being applied every 5 days. For higher freq. apply scaling, e.g 2*dSICN/5 for 2-day.
