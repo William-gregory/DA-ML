@@ -66,6 +66,11 @@ land_mask = np.copy(X[:,0])
 land_mask[~np.isnan(land_mask)] = 1
 land_mask[np.isnan(land_mask)] = 0
 land_mask[:,:4] = 0
+                     
+#compute statistics over ocean grid cells above 40 degrees latitude:
+NH = np.where((lat>40) & (land_mask[0,4:-4,4:-4]==1))
+SH = np.where((lat<-40) & (land_mask[0,4:-4,4:-4]==1))
+normIDs = (np.concatenate((NH[0],SH[0])),np.concatenate((NH[1],SH[1]))) 
 
 X = np.hstack((X,land_mask[:,None]))
 X[np.isnan(X)] = 0
@@ -75,17 +80,13 @@ if os.path.exists('../data_files/NetworkA_statistics_1982-2017_allsamples.npz')
     for N in range(X.shape[1]-1): 
         X[:,N] = (X[:,N]-stats['mu'][N])/stats['sigma'][N] #standardize inputs
         X[:,N][land_mask==0] = 0
-else:   
-    #compute statistics over ocean grid cells above 40 degrees latitude:
-    NH = np.where((lat>40) & (land_mask[0,pad_size:-pad_size,pad_size:-pad_size]==1))
-    SH = np.where((lat<-40) & (land_mask[0,pad_size:-pad_size,pad_size:-pad_size]==1))
-    IDs = (np.concatenate((NH[0],SH[0])),np.concatenate((NH[1],SH[1]))) 
+else:
     mu = np.zeros(X.shape[1]-1)
     sigma = np.zeros(X.shape[1]-1)
     for N in range(X.shape[1]-1):
         X_nopad = X[:,N,pad_size:-pad_size,pad_size:-pad_size]
-        mu[N] = np.nanmean(X_nopad[:,IDs[0],IDs[1]])
-        sigma[N] = np.nanstd(X_nopad[:,IDs[0],IDs[1]])
+        mu[N] = np.nanmean(X_nopad[:,normIDs[0],normIDs[1]])
+        sigma[N] = np.nanstd(X_nopad[:,normIDs[0],normIDs[1]])
         X[:,N] = (X[:,N]-mu[N])/sigma[N]
         X[:,N][land_mask==0] = 0
     np.savez('../data_files/NetworkA_statistics_1982-2017_allsamples.npz',mu=mu,sigma=sigma)
@@ -109,18 +110,13 @@ if os.path.exists('../data_files/NetworkB_statistics_1982-2017_allsamples.npz')
         X[:,N] = (X[:,N]-stats['mu'][N])/stats['sigma'][N] #standardize inputs
         X[:,N][land_mask==0] = 0
 else:   
-    #compute statistics over ocean grid cells above 40 degrees latitude:
-    NH = np.where((lat>40) & (land_mask[0,pad_size:-pad_size,pad_size:-pad_size]==1))
-    SH = np.where((lat<-40) & (land_mask[0,pad_size:-pad_size,pad_size:-pad_size]==1))
-    IDs = (np.concatenate((NH[0],SH[0])),np.concatenate((NH[1],SH[1]))) 
     mu = np.zeros(X.shape[1]-1)
     sigma = np.zeros(X.shape[1]-1)
     for N in range(X.shape[1]-1):
-        X_nopad = X[:,N,pad_size:-pad_size,pad_size:-pad_size]
-        mu[N] = np.nanmean(X_nopad[:,IDs[0],IDs[1]])
-        sigma[N] = np.nanstd(X_nopad[:,IDs[0],IDs[1]])
+        mu[N] = np.nanmean(X[:,N,normIDs[0],normIDs[1]])
+        sigma[N] = np.nanstd(X[:,N,normIDs[0],normIDs[1]])
         X[:,N] = (X[:,N]-mu[N])/sigma[N]
-        X[:,N][land_mask==0] = 0
+        X[:,N][land_mask[:,4:-4,4:-4]==0] = 0
     np.savez('../data_files/NetworkB_statistics_1982-2017_allsamples.npz',mu=mu,sigma=sigma)
 
 dSICN_pred = Net(X,argsB,y_train=dSICN,x_valid=X,y_valid=dSICN,path=NetworkB_weights) #generate category SIC increment prediction
