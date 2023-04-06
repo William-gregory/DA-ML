@@ -6,6 +6,6 @@ This repository contains code and data relating to work as part of the [M2LInES]
 
 In the offline_learning folder is an example jupyter notebook of how the CNN was trained and model selection performed by carrying out 5-fold cross-validation tests
 
-### Online
+### Online ice-ocean
 
 Example scripts of how to implement the trained CNN into SPEAR ice-ocean simulations as a way to correct short-forecasts.
