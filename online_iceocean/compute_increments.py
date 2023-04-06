@@ -1,8 +1,8 @@
 import numpy as np
 import xarray as xr
 import glob
-from DA_ML.preprocessing import pad
-from DA_ML.NNetwork import *
+from preprocessing import pad
+from NNetwork import *
 
 argsA = {
 'kernel_size':3,
