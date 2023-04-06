@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import numpy as np
@@ -77,8 +78,7 @@ def Net(x_train,args,y_train=None,x_valid=None,y_valid=None,path=None):
         test_data = torch.utils.data.TensorDataset(x_valid,y_valid)
     
 
-        if path is None:
-            path = '../CNN_weights/CNN_weights.pt'
+        if os.path.exists(path)==False:
             opt = torch.optim.Adam(model.parameters(),lr=args['lr'],weight_decay=args['wd'])
             loader_train = torch.utils.data.DataLoader(dataset=train_data, batch_size=args['batch_size'], shuffle=True)
             for epoch in range(args['epochs']):
