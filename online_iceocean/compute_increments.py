@@ -35,10 +35,12 @@ f = xr.open_mfdataset(files,combine='nested',concat_dim='ens')
 states = f.mean('time')
 tend = f.diff('time').mean('time')
 nmembers = len(files)
+yT = len(f.yT)
+xT = len(f.xT)
 scaling = len(f.time)/5 #applied to the increments at the end in case the correction is applied at different frequencies, e.g., 2-day vs 5-day etc.
                         #CNN was originally trained on data from a 5-day DA cycle, so we just linearly scale.
 
-dSICN = np.zeros((nmembers,1,5,320,360)) #compute an increment for every ensemble member
+dSICN = np.zeros((nmembers,1,argsB['n_classes'],yT,xT)) #compute an increment for every ensemble member
                                                                                                                                                                    
 inputs = ['siconc','SST','UI','VI','HI','SW','TS','SSS']
 for member in range(nmembers):
