@@ -64,6 +64,7 @@ for member in range(nmembers):
         X[:,N] = (X[:,N]-NetworkA_stats['mu'][N])/NetworkA_stats['sigma'][N] #standardize inputs
         X[:,N][land_mask==0] = 0
 
+    argsA['n_channels'] = X.shape[1]
     dSIC = Net(X,argsA,path=NetworkA_weights)[:,0] #generate aggregate SIC increment prediction
     dSIC[land_mask[:,4:-4,4:-4]==0] = 0
     
@@ -81,6 +82,7 @@ for member in range(nmembers):
         X[:,N] = (X[:,N]-NetworkB_stats['mu'][N])/NetworkB_stats['sigma'][N] #standardize inputs
         X[:,N][land_mask[:,4:-4,4:-4]==0] = 0
 
+    argsB['n_channels'] = X.shape[1]
     dSICN_pred = Net(X,argsB,path=NetworkB_weights) #generate category SIC increment prediction
     for CAT in range(5):
         dSICN_pred[:,CAT][land_mask[:,4:-4,4:-4]==0] = 0
