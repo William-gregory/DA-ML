@@ -45,12 +45,19 @@ def Net(x_train,args,y_train=None,x_valid=None,y_valid=None,path=None):
     """
     
     torch.manual_seed(args['seed'])
-    model = CNN(args)
-    
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
+    elif torch.backends.mps.is_available(): #for MacOS version >=12.3 (with torch nightly)
+        device = torch.device('mps')
+    else:
+        device = torch.device('cpu')
+        
+    model = CNN(args).to(device)
+
     x_train[np.isnan(x_train)] = 0
     x_train = torch.from_numpy(x_train.astype(np.float32))
-    args['n_channels'] = x_train.shape[1]
     if y_train is None: #just generate a prediction based on the given inputs and weights
+        model = model.to(torch.device('cpu'))
         model.load_state_dict(torch.load(path,map_location=torch.device('cpu')))
         model.eval()
         with torch.no_grad():
@@ -72,17 +79,15 @@ def Net(x_train,args,y_train=None,x_valid=None,y_valid=None,path=None):
             if x_valid is not None:
                 y_valid = y_valid[:,None,...]
    
-        args['n_classes'] = y_train.shape[1]
-
         train_data = torch.utils.data.TensorDataset(x_train,y_train)
         test_data = torch.utils.data.TensorDataset(x_valid,y_valid)
-    
 
         if os.path.exists(path)==False:
             opt = torch.optim.Adam(model.parameters(),lr=args['lr'],weight_decay=args['wd'])
             loader_train = torch.utils.data.DataLoader(dataset=train_data, batch_size=args['batch_size'], shuffle=True)
             for epoch in range(args['epochs']):
                 for x_,y_ in loader_train:
+                    x_,y_ = x_.to(device),y_.to(device)
                     opt.zero_grad()
                     loss = args['loss'](model(x_),y_)
                     loss.backward()
@@ -95,5 +100,6 @@ def Net(x_train,args,y_train=None,x_valid=None,y_valid=None,path=None):
         loader_test = torch.utils.data.DataLoader(dataset=test_data, batch_size=args['batch_size'], shuffle=False)
         with torch.no_grad():
             for xs_,ys_ in loader_test:
+                xs_,ys_ = xs_.to(device),ys_.to(device)
                 f.append(model(xs_))
-        return torch.cat(f).numpy()
+        return torch.cat(f).to('cpu').numpy()
