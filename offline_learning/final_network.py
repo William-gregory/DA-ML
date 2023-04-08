@@ -92,6 +92,7 @@ else:
         X[:,N][land_mask==0] = 0
     np.savez('../data_files/NetworkA_statistics_1982-2017_allsamples.npz',mu=mu,sigma=sigma)
 
+argsA['n_channels'] = X.shape[1]
 dSIC = Net(X,argsA,y_train=dSIC,x_valid=X,y_valid=dSIC,path=NetworkA_weights)[:,0] #generate aggregate SIC increment prediction
 dSIC[land_mask[:,4:-4,4:-4]==0] = 0
 
@@ -120,6 +121,7 @@ else:
         X[:,N][land_mask[:,4:-4,4:-4]==0] = 0
     np.savez('../data_files/NetworkB_statistics_1982-2017_allsamples.npz',mu=mu,sigma=sigma)
 
+argsB['n_channels'] = X.shape[1]
 dSICN_pred = Net(X,argsB,y_train=dSICN,x_valid=X,y_valid=dSICN,path=NetworkB_weights) #generate category SIC increment prediction
 for CAT in range(5):
     dSICN_pred[:,CAT][land_mask[:,4:-4,4:-4]==0] = 0
