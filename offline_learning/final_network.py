@@ -13,7 +13,7 @@ def LossA(outputs, targets):
     return torch.mean((outputs-targets)**2)
   
 def LossB(outputs, targets):
-    return torch.sum(torch.mean((outputs-targets)**2,(0,2,3)) + 5*torch.mean((torch.sum(outputs,1)-torch.sum(targets,1))**2)
+    return torch.sum(torch.mean((outputs-targets)**2,(0,2,3))) + 5*torch.mean((torch.sum(outputs,1)-torch.sum(targets,1))**2)
 
 argsA = {
 'kernel_size':3,
