@@ -1,3 +1,4 @@
+import os
 import xarray as xr
 import glob
 import numpy as np
@@ -61,8 +62,11 @@ def liquidus_temperature_mush(Sbr):
 
     return ((Sbr / (M1_liq + N1_liq * Sbr)) + O1_liq) * t_high + ((Sbr / (M2_liq + N2_liq * Sbr)) + O2_liq) * (1.0 - t_high)
 
-scale = 5 #change scaling depending on frequency of updates. Default is daily    
+if os.path.exists('climatology_increments_1982-2017.nc')==False:
+    os.system('wget -nv ftp://sftp.gfdl.noaa.gov/perm/William.Gregory/climatology_increments_1982-2017.nc')
+
 f = xr.open_dataset('climatology_increments_1982-2017.nc')
+scale = 5 #change scaling depending on frequency of updates. Default is daily    
 dSICN = scale*f.dSICN.to_numpy()                                                                   
 IFA_dates = f.time.to_numpy()
 y,m,d = np.genfromtxt('coupler.res',skip_header=1)[1,:3].astype(np.int32)
