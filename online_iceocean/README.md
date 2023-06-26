@@ -19,9 +19,29 @@ The CNN correction is applied back into SPEAR ice-ocean simulations as a bias co
              
              # rest of post-processing script follows as normal
              
-`DAML_G23.csh' is shown here as an example, so just swap this out for another (e.g., `DAML_IFA.csh' or `DAML_OPTp2.csh').
+`DAML_G23.csh` is shown here as an example, so just swap this out for another (e.g., `DAML_IFA.csh` or `DAML_OPTp2.csh`). To run a 2-step correction approach where first the CNN updates the state, and then we do DA on top, just add a call to the DART script below, as follows:
 
+    <freInclude name="OM4_postprocess">
+        <postProcess>
+            <csh><![CDATA[ 
+         
+             cd $work/RESTART
+             if (! -e coupler.res) then
+                 echo model still running
+             else
+                 # FIRST DO CNN
+                 cp DAML_OPTp1.csh .
+                 csh DAML_OPTp1.csh >& log_CNN.out
+                 rm log_CNN.out
+                 rm DAML_OPTp1.csh
 
+                 # NOW DO DA
+                 cp data_assimilation_DART.csh .
+                 csh data_assimilation_DART.csh >&log.out || exit 12
+                 wait
+             endif
+
+             # rest of post-processing script follows as normal
 
 To then run the model as a series of short forecasts the exectuable needs to be adjusted (this is done *after* running frerun, where the exectuable then gets saved in /lustre/f2/dev/.../scripts/run/). An example of which parts of the executable need to be changed in order to run a 5-year simulation, with the CNN correction being applied every 5 days is shown below:
 
