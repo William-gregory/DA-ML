@@ -62,8 +62,9 @@ def liquidus_temperature_mush(Sbr):
     return ((Sbr / (M1_liq + N1_liq * Sbr)) + O1_liq) * t_high + ((Sbr / (M2_liq + N2_liq * Sbr)) + O2_liq) * (1.0 - t_high)
 
 scale = 5 #change scaling depending on frequency of updates. Default is daily    
-dSICN = scale*np.load('../data_files/climatology_increments_1982-2017.npy')                                                                   
-IFA_dates = np.load('../data_files/climatology_increment_dates.npy')
+f = xr.open_dataset('climatology_increments_1982-2017.nc')
+dSICN = scale*f.dSICN.to_numpy()                                                                   
+IFA_dates = f.time.to_numpy()
 y,m,d = np.genfromtxt('coupler.res',skip_header=1)[1,:3].astype(np.int32)
 date = (datetime(y,m,d) + timedelta(days=1)).strftime('%m%d')
 day = np.where(IFA_dates==date)[0][0]
