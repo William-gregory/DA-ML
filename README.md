@@ -4,7 +4,7 @@ This repository contains code and data relating to the article [Gregory et al., 
 
 ### Offline learning
 
-In the offline_learning folder is an example jupyter notebook of how the CNN was trained and model selection performed by carrying out 5-fold cross-validation tests
+In the `offline_learning` folder is an example jupyter notebook of how the CNN was trained and model selection performed by carrying out 5-fold cross-validation tests
 
 ### Online ice-ocean
 
