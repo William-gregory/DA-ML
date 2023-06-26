@@ -1,6 +1,16 @@
 ### Implementation of CNN into SPEAR ice-ocean simulations
 
-The CNN correction is applied back into SPEAR ice-ocean simulations as a bias correction tool. In other words, we run a short simulation/forecast of the model, e.g., for 5 days, at which point the CNN updates the restart files as a post-processing step, and then the model continues from this updated state for the next 5 days. The post-processing is implemented in an xml in the following way:
+The CNN correction is applied back into SPEAR ice-ocean simulations as a bias correction tool. In other words, we run a short simulation/forecast of the model, e.g., for 5 days, at which point the CNN updates the restart files as a post-processing step, and then the model continues from this updated state for the next 5 days. Note that the scripts within this repository are for implementing a few different variations of CNN and/or DA correction schemes:
+
+`DAML_G23.csh` - train a CNN (based on Gregory et al., 2023) using all available data between 1982-2017.
+
+`DAML_IFA.csh` - compute the mean SIC increment for each day of the year, over 1982-2017, and apply this as a "mean error correction" at each grid point location.
+
+`DAML_OPTp1.csh` - train a CNN (as in G23) using all available data between 1982-2012 (this is then followed by a subsequent update with DA - see below).
+
+`DAML_OPTp2.csh` - based on a final optimized network which has been tuned based on the increments produced from the `DAML_OPTp1.csh` simulation.
+
+The post-processing step to implement a CNN or IFA into an xml is done in the following way:
 
     <freInclude name="OM4_postprocess">
         <postProcess>
