@@ -94,11 +94,11 @@ else:
     np.savez('../data_files/NetworkA_statistics_1982-2017_allsamples.npz',mu=mu,sigma=sigma)
 
 argsA['n_channels'] = X.shape[1]
-dSIC = Net(X,argsA,y_train=dSIC,x_valid=X,y_valid=dSIC,path=NetworkA_weights)[:,0] #generate aggregate SIC increment prediction
-dSIC[land_mask[:,pad_size:-pad_size,pad_size:-pad_size]==0] = 0
+dSIC_pred = Net(X,argsA,y_train=dSIC,x_valid=X,y_valid=dSIC,path=NetworkA_weights)[:,0] #generate aggregate SIC increment prediction
+dSIC_pred[land_mask[:,pad_size:-pad_size,pad_size:-pad_size]==0] = 0
 
 ### NETWORK B ###                                                                                                                                                                  
-X = [dSIC]
+X = [dSIC_pred]
 for CAT in range(5):
     X.append(forecasts['SICN'].isel(n=0,ct=CAT).to_numpy()[None])
     X.append(forecasts['SICN'].isel(n=1,ct=CAT).to_numpy()[None])
@@ -126,6 +126,5 @@ argsB['n_channels'] = X.shape[1]
 dSICN_pred = Net(X,argsB,y_train=dSICN,x_valid=X,y_valid=dSICN,path=NetworkB_weights) #generate category SIC increment prediction
 for CAT in range(5):
     dSICN_pred[:,CAT][land_mask[:,pad_size:-pad_size,pad_size:-pad_size]==0] = 0
-dSICN[member] = dSICN_pred
 
-np.save('dSICN_increment_1982-2017_allsamples.npy',dSICN)
+np.save('dSICN_increment_1982-2017_allsamples.npy',dSICN_pred)
