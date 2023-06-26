@@ -1,11 +1,11 @@
 #!/bin/csh -fx                                                                                                                                                                         
 
 cd ../
-cp compute_increments.py .
-cp update_model_state.py RESTART/.
+cp compute_increments_G23.py .
+cp update_model_state_CNN.py RESTART/.
 
-python compute_increments.py
-rm compute_increments.py
+python compute_increments_G23.py
+rm compute_increments_G23.py
 mv dSICN_increment.npy RESTART/.
 
 cd RESTART
@@ -15,8 +15,8 @@ foreach member (1 ${ensemble_size})
    touch -r ice_model.res.ens_$TMP.nc ice_model$TMP.timestamp
 end
 
-python update_model_state.py
-rm update_model_state.py
+python update_model_state_CNN.py
+rm update_model_state_CNN.py
 rm dSICN_increment.npy
 
 foreach member (1 ${ensemble_size})
