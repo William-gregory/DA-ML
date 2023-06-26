@@ -56,7 +56,7 @@ for member in range(nmembers):
     land_mask = np.copy(X[:,0])
     land_mask[~np.isnan(land_mask)] = 1
     land_mask[np.isnan(land_mask)] = 0
-    land_mask[:,:4] = 0
+    land_mask[:,:pad_size] = 0
 
     X = np.hstack((X,land_mask[:,None]))
     X[np.isnan(X)] = 0
