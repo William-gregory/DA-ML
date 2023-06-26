@@ -25,7 +25,7 @@ argsB = {
 }
 
 NetworkA_weights = '../CNN_weights/NetworkA_weights_1982-2017_allsamples.pt'
-NetworkB_weights = '../CNN_weightsNetworkB_weights_1982-2017_allsamples.pt'
+NetworkB_weights = '../CNN_weights/NetworkB_weights_1982-2017_allsamples.pt'
 
 NetworkA_stats = np.load('../data_files/NetworkA_statistics_1982-2017_allsamples.npz')
 NetworkB_stats = np.load('../data_files/NetworkB_statistics_1982-2017_allsamples.npz')
