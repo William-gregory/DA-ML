@@ -37,6 +37,7 @@ tend = f.diff('time').mean('time')
 nmembers = len(f.ens)
 yT = len(f.yT)
 xT = len(f.xT)
+pad_size = 4
 scaling = len(f.time)/5 #applied to the increments at the end in case the correction is applied at different frequencies, e.g., 2-day vs 5-day etc.
                         #CNN was originally trained on data from a 5-day DA cycle, so we just linearly scale.
 
@@ -48,8 +49,8 @@ for member in range(nmembers):
     ### NETWORK A ### 
     X = []
     for label in inputs:
-        X.append(pad(states[label].isel(ens=member).to_numpy()[None],label,4))
-        X.append(pad(tend[label].isel(ens=member).to_numpy()[None],label,4))
+        X.append(pad(states[label].isel(ens=member).to_numpy()[None],label,pad_size))
+        X.append(pad(tend[label].isel(ens=member).to_numpy()[None],label,pad_size))
     X = np.transpose(X,(1,0,2,3))
 
     land_mask = np.copy(X[:,0])
@@ -66,7 +67,7 @@ for member in range(nmembers):
 
     argsA['n_channels'] = X.shape[1]
     dSIC = Net(X,argsA,path=NetworkA_weights)[:,0] #generate aggregate SIC increment prediction
-    dSIC[land_mask[:,4:-4,4:-4]==0] = 0
+    dSIC[land_mask[:,pad_size:-pad_size,pad_size:-pad_size]==0] = 0
     
     ### NETWORK B ###                                                                                                                                                                  
     X = [dSIC]
@@ -75,17 +76,17 @@ for member in range(nmembers):
         X.append(tend['CN'].isel(ct=CAT,ens=member).to_numpy()[None])
     X = np.transpose(X,(1,0,2,3))
 
-    X = np.hstack((X,land_mask[:,None,4:-4,4:-4]))
+    X = np.hstack((X,land_mask[:,None,pad_size:-pad_size,pad_size:-pad_size]))
     X[np.isnan(X)] = 0
 
     for N in range(X.shape[1]-1):
         X[:,N] = (X[:,N]-NetworkB_stats['mu'][N])/NetworkB_stats['sigma'][N] #standardize inputs
-        X[:,N][land_mask[:,4:-4,4:-4]==0] = 0
+        X[:,N][land_mask[:,pad_size:-pad_size,pad_size:-pad_size]==0] = 0
 
     argsB['n_channels'] = X.shape[1]
     dSICN_pred = Net(X,argsB,path=NetworkB_weights) #generate category SIC increment prediction
     for CAT in range(5):
-        dSICN_pred[:,CAT][land_mask[:,4:-4,4:-4]==0] = 0
+        dSICN_pred[:,CAT][land_mask[:,pad_size:-pad_size,pad_size:-pad_size]==0] = 0
     dSICN[member] = dSICN_pred
 
 np.save('dSICN_increment.npy',scaling*dSICN)
