@@ -21,7 +21,7 @@ The CNN correction is applied back into SPEAR ice-ocean simulations as a bias co
              
 To then run the model as a series of short forecasts the exectuable needs to be adjusted (this is done *after* running frerun). An example of which parts of the executable need to be changed in order to run a 4-year simulation, with the CNN correction being applied every 5 days is shown below:
 
-    set -r segmentsPerSimulation = 292 #292 segements each running 5 days = 1460 days
+    set -r segmentsPerSimulation = 365 #365 segements each running 5 days = 1825 days
     set segmentsPerPPCall = 0 
     set -r segmentsPerJob = 40
     set -r monthslist = ( 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 )
