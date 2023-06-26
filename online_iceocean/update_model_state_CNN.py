@@ -61,7 +61,7 @@ def liquidus_temperature_mush(Sbr):
     return ((Sbr / (M1_liq + N1_liq * Sbr)) + O1_liq) * t_high + ((Sbr / (M2_liq + N2_liq * Sbr)) + O2_liq) * (1.0 - t_high)
   
   
-dSICN = np.load('dSICN_increment.npy') #category increments computed during simulation
+dSICN = np.load('dSICN_increment.npy') #category increments computed during simulation (from compute_increments.py script)
 files = sorted(glob.glob('ice_model.res*')) #prior model states (raw RESTART files)
 rho_ice = 905.
 rho_snow= 330.
