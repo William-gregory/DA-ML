@@ -37,10 +37,10 @@ The post-processing step to implement a CNN or MEC into an xml is done in the fo
                  echo model still running
              else
                  # FIRST DO CNN
-                 cp DAML_OPTp1.csh .
-                 csh DAML_OPTp1.csh >& log_CNN.out
+                 cp DAML_G23.csh .
+                 csh DAML_G23.csh >& log_CNN.out
                  rm log_CNN.out
-                 rm DAML_OPTp1.csh
+                 rm DAML_G23.csh
 
                  # NOW DO DA
                  cp data_assimilation_DART.csh .
