@@ -7,7 +7,7 @@ The CNN correction is applied back into SPEAR ice-ocean simulations as a bias co
 `DAML_OPTp1.csh` - train a CNN (as in G23) using all available data between 1982-2012. \
 `DAML_OPTp2.csh` - based on optimized network (following increments from DAML_OPTp1.csh).
 
-The post-processing step to implement a CNN or IFA into an xml is done in the following way:
+The post-processing step to implement a CNN or MEC into an xml is done in the following way:
 
     <freInclude name="OM4_postprocess">
         <postProcess>
