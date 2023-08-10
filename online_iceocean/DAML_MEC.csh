@@ -6,8 +6,8 @@ foreach member (1 ${ensemble_size})
    touch -r ice_model.res.ens_$TMP.nc ice_model$TMP.timestamp
 end
 
-python update_model_state_IFA.py
-rm update_model_state_IFA.py
+python update_model_state_MEC.py
+rm update_model_state_MEC.py
 
 foreach member (1 ${ensemble_size})
    set TMP = `printf %02d ${member}`
