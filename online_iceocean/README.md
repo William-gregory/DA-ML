@@ -26,7 +26,7 @@ The post-processing step to implement a CNN or MEC into an xml is done in the fo
              
              # rest of post-processing script follows as normal
              
-`DAML_G23.csh` is shown here as an example, so just swap this out for another (e.g., `DAML_IFA.csh` or `DAML_OPTp2.csh`). To run a 2-step correction approach where first the CNN updates the state, and then we do DA on top, just add a call to the DART script below, as follows:
+`DAML_G23.csh` is shown here as an example, so just swap this out for another (e.g., `DAML_MEC.csh` or `DAML_OPTp2.csh`). To run a 2-step correction approach where first the CNN updates the state, and then we do DA on top, just add a call to the DART script below, as follows:
 
     <freInclude name="OM4_postprocess">
         <postProcess>
