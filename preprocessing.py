@@ -4,7 +4,7 @@ def pad(data,label,size):
     """
     Pad a 3D array by 'size' along its spatial dimensions.
     If data are velocity files (SIU or SIV), first compute
-    2-pt moving average so that fields are defined on the 
+    2-pt average so that fields are defined on the 
     same tracer grid as scalar fields
     """
     if (label == 'SIU') or (label == 'UI'):
