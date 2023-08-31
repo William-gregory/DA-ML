@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import xarray as xr
 import glob
@@ -62,7 +63,51 @@ def liquidus_temperature_mush(Sbr):
 
     return ((Sbr / (M1_liq + N1_liq * Sbr)) + O1_liq) * t_high + ((Sbr / (M2_liq + N2_liq * Sbr)) + O2_liq) * (1.0 - t_high)
   
-files = sorted(glob.glob('ice_model.res*')) #prior model states (raw RESTART files)
+argsA = {
+'kernel_size':3,
+'zero_padding':0,
+'h_channels':[32,64,128],
+'n_classes':1,
+'stride':1,
+'bias':False,
+'seed':711,
+}
+
+argsB = {
+'kernel_size':1,
+'zero_padding':0,
+'h_channels':[32,64,128],
+'n_classes':5,
+'stride':1,
+'bias':False,
+'seed':711,
+}
+
+NetworkA_weights = '/ncrc/home2/William.Gregory/DA-ML/CNN_weights/NetworkA_weights_CNNopt.pt'
+NetworkB_weights = '/ncrc/home2/William.Gregory/DA-ML/CNN_weights/NetworkB_weights_CNNopt.pt'
+
+NetworkA_stats = np.load('/ncrc/home2/William.Gregory/DA-ML/data_files/NetworkA_statistics_1982-2017_allsamples.npz')
+NetworkB_stats = np.load('/ncrc/home2/William.Gregory/DA-ML/data_files/NetworkB_statistics_1982-2017_allsamples.npz')
+
+experiment = os.getcwd().split('/')[-1].split('.')[0]
+savepath = '/lustre/f2/dev/William.Gregory/CNN_increments/'+experiment+'/'
+if os.path.exists(savepath)==False:
+    os.mkdir(savepath)
+files = sorted(glob.glob('*ice_daily*'))
+f = xr.open_mfdataset(files,combine='nested',concat_dim='ens')
+states = f.mean('time')
+tend = f.diff('time').mean('time')
+nmembers = len(f.ens)
+yT = len(f.yT)
+xT = len(f.xT)
+pad_size = 4
+scaling = len(f.time)/5 #applied to the increments at the end in case the correction is applied at different frequencies, e.g., 2-day vs 5-day etc.
+                        #CNN was originally trained on data from a 5-day DA cycle, so we just linearly scale.
+
+dSICN = np.zeros((nmembers,1,argsB['n_classes'],yT,xT)) #compute an increment for every ensemble member
+inputs = ['siconc','SST','UI','VI','HI','SW','TS','SSS']
+
+restarts = sorted(glob.glob('RESTART/ice_model.res*')) #prior model states (raw RESTART files)
 rho_ice = 905.
 rho_snow= 330.
 phi_init = 0.75 #initial liquid fraction of frazil ice                                                                                                                                 
@@ -73,9 +118,53 @@ hlim = [1.0e-10, 0.1, 0.3, 0.7, 1.1, 1.5]
 hmid = np.array([0.5*(hlim[n]+hlim[n+1]) for n in range(5)])
 i_thick = np.tile((hmid*rho_ice)[None,:,None,None],(1,1,320,360))
 
-for member,file in enumerate(files): #add increment to each ensemble member
-    f = xr.open_dataset(file)
-    prior = f.part_size.to_numpy()
+for member,file in enumerate(restarts): #compute increment and add to each ensemble member    
+    ### NETWORK A ### 
+    X = []
+    for label in inputs:
+        X.append(pad(states[label].isel(ens=member).to_numpy()[None],label,pad_size))
+        X.append(pad(tend[label].isel(ens=member).to_numpy()[None],label,pad_size))
+    X = np.transpose(X,(1,0,2,3))
+
+    land_mask = np.copy(X[:,0])
+    land_mask[~np.isnan(land_mask)] = 1
+    land_mask[np.isnan(land_mask)] = 0
+    land_mask[:,:pad_size] = 0
+
+    X = np.hstack((X,land_mask[:,None]))
+    X[np.isnan(X)] = 0
+
+    for N in range(X.shape[1]-1): 
+        X[:,N] = (X[:,N]-NetworkA_stats['mu'][N])/NetworkA_stats['sigma'][N] #standardize inputs
+        X[:,N][land_mask==0] = 0
+
+    argsA['n_channels'] = X.shape[1]
+    dSIC = Net(X,argsA,path=NetworkA_weights)[:,0] #generate aggregate SIC increment prediction
+    dSIC[land_mask[:,pad_size:-pad_size,pad_size:-pad_size]==0] = 0
+    
+    ### NETWORK B ###                                                                                                                                                                  
+    X = [dSIC]
+    for CAT in range(5):
+        X.append(states['CN'].isel(ct=CAT,ens=member).to_numpy()[None])
+        X.append(tend['CN'].isel(ct=CAT,ens=member).to_numpy()[None])
+    X = np.transpose(X,(1,0,2,3))
+
+    X = np.hstack((X,land_mask[:,None,pad_size:-pad_size,pad_size:-pad_size]))
+    X[np.isnan(X)] = 0
+
+    for N in range(X.shape[1]-1):
+        X[:,N] = (X[:,N]-NetworkB_stats['mu'][N])/NetworkB_stats['sigma'][N] #standardize inputs
+        X[:,N][land_mask[:,pad_size:-pad_size,pad_size:-pad_size]==0] = 0
+
+    argsB['n_channels'] = X.shape[1]
+    dSICN_pred = Net(X,argsB,path=NetworkB_weights) #generate category SIC increment prediction
+    for CAT in range(5):
+        dSICN_pred[:,CAT][land_mask[:,pad_size:-pad_size,pad_size:-pad_size]==0] = 0
+    dSICN[member] = dSICN_pred
+
+    ### ADD TO RESTART FILE ###
+    fr = xr.open_dataset(file)
+    prior = fr.part_size.to_numpy()
     post = np.zeros((1,6,320,360))
     post[0,1:] = pp(prior[0,1:] + dSICN[member,0])
     post[0,0] = 1 - np.nansum(post[0,1:],0)
@@ -126,94 +215,8 @@ for member,file in enumerate(files): #add increment to each ensemble member
     
     f.to_netcdf(file,mode='a')
 
-
-argsA = {
-'kernel_size':3,
-'zero_padding':0,
-'h_channels':[32,64,128],
-'n_classes':1,
-'stride':1,
-'bias':False,
-'seed':711,
-}
-
-argsB = {
-'kernel_size':1,
-'zero_padding':0,
-'h_channels':[32,64,128],
-'n_classes':5,
-'stride':1,
-'bias':False,
-'seed':711,
-}
-
-NetworkA_weights = '../CNN_weights/NetworkA_weights_CNNopt.pt'
-NetworkB_weights = '../CNN_weights/NetworkB_weights_CNNopt.pt'
-
-NetworkA_stats = np.load('../data_files/NetworkA_statistics_1982-2017_allsamples.npz')
-NetworkB_stats = np.load('../data_files/NetworkB_statistics_1982-2017_allsamples.npz')
-
-files = sorted(glob.glob('*ice_daily*'))
-f = xr.open_mfdataset(files,combine='nested',concat_dim='ens')
-states = f.mean('time')
-tend = f.diff('time').mean('time')
-nmembers = len(f.ens)
-yT = len(f.yT)
-xT = len(f.xT)
-pad_size = 4
-scaling = len(f.time)/5 #applied to the increments at the end in case the correction is applied at different frequencies, e.g., 2-day vs 5-day etc.
-                        #CNN was originally trained on data from a 5-day DA cycle, so we just linearly scale.
-
-dSICN = np.zeros((nmembers,1,argsB['n_classes'],yT,xT)) #compute an increment for every ensemble member
-                                                                                                                                                                   
-inputs = ['siconc','SST','UI','VI','HI','SW','TS','SSS']
-for member in range(nmembers):
-    
-    ### NETWORK A ### 
-    X = []
-    for label in inputs:
-        X.append(pad(states[label].isel(ens=member).to_numpy()[None],label,pad_size))
-        X.append(pad(tend[label].isel(ens=member).to_numpy()[None],label,pad_size))
-    X = np.transpose(X,(1,0,2,3))
-
-    land_mask = np.copy(X[:,0])
-    land_mask[~np.isnan(land_mask)] = 1
-    land_mask[np.isnan(land_mask)] = 0
-    land_mask[:,:pad_size] = 0
-
-    X = np.hstack((X,land_mask[:,None]))
-    X[np.isnan(X)] = 0
-
-    for N in range(X.shape[1]-1): 
-        X[:,N] = (X[:,N]-NetworkA_stats['mu'][N])/NetworkA_stats['sigma'][N] #standardize inputs
-        X[:,N][land_mask==0] = 0
-
-    argsA['n_channels'] = X.shape[1]
-    dSIC = Net(X,argsA,path=NetworkA_weights)[:,0] #generate aggregate SIC increment prediction
-    dSIC[land_mask[:,pad_size:-pad_size,pad_size:-pad_size]==0] = 0
-    
-    ### NETWORK B ###                                                                                                                                                                  
-    X = [dSIC]
-    for CAT in range(5):
-        X.append(states['CN'].isel(ct=CAT,ens=member).to_numpy()[None])
-        X.append(tend['CN'].isel(ct=CAT,ens=member).to_numpy()[None])
-    X = np.transpose(X,(1,0,2,3))
-
-    X = np.hstack((X,land_mask[:,None,pad_size:-pad_size,pad_size:-pad_size]))
-    X[np.isnan(X)] = 0
-
-    for N in range(X.shape[1]-1):
-        X[:,N] = (X[:,N]-NetworkB_stats['mu'][N])/NetworkB_stats['sigma'][N] #standardize inputs
-        X[:,N][land_mask[:,pad_size:-pad_size,pad_size:-pad_size]==0] = 0
-
-    argsB['n_channels'] = X.shape[1]
-    dSICN_pred = Net(X,argsB,path=NetworkB_weights) #generate category SIC increment prediction
-    for CAT in range(5):
-        dSICN_pred[:,CAT][land_mask[:,pad_size:-pad_size,pad_size:-pad_size]==0] = 0
-    dSICN[member] = dSICN_pred
-
-ds = xr.Dataset(data_vars=dict(dSICN=(['time', 'ct', 'yT', 'xT'], scaling*dSICN)), coords=dict(yT=forecasts['yT'], xT=forecasts['xT']))
+ds = xr.Dataset(data_vars=dict(dSICN=(['time', 'ct', 'yT', 'xT'], scaling*np.nanmean(dSICN,0))), coords=dict(yT=forecasts['yT'], xT=forecasts['xT']))
 ds.dSICN.attrs['long_name'] = 'category_sea_ice_concentration_increments'
 ds.dSICN.attrs['units'] = 'area_fraction'
 ds['time'] = [time]
-ds.to_netcdf('dSICN_increment.nc')
+ds.to_netcdf(savepath+date+'.dSICN_increment.nc')
