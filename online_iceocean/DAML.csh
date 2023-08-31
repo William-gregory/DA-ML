@@ -1,23 +1,15 @@
 #!/bin/csh -fx                                                                                                                                                                         
 
-cd ../
-cp compute_increments_G23.py .
-cp update_model_state_CNN.py RESTART/.
+cp /ncrc/home2/William.Gregory/DA-ML/CNN_SIS2.py .
 
-python compute_increments_G23.py
-rm compute_increments_G23.py
-mv dSICN_increment.npy RESTART/.
-
-cd RESTART
 set ensemble_size  = `grep ensemble_size ../input.nml | cut -d'=' -f2`
 foreach member (1 ${ensemble_size})
    set TMP = `printf %02d ${member}`
    touch -r ice_model.res.ens_$TMP.nc ice_model$TMP.timestamp
 end
 
-python update_model_state_CNN.py
-rm update_model_state_CNN.py
-rm dSICN_increment.npy
+python CNN_SIS2.py
+rm CNN_SIS2.py
 
 foreach member (1 ${ensemble_size})
    set TMP = `printf %02d ${member}`
