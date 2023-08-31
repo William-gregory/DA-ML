@@ -24,8 +24,8 @@ argsB = {
 'seed':711,
 }
 
-NetworkA_weights = '../CNN_weights/NetworkA_weights_1982-2017_OPT.pt'
-NetworkB_weights = '../CNN_weights/NetworkB_weights_1982-2017_OPT.pt'
+NetworkA_weights = '../CNN_weights/NetworkA_weights_CNNopt.pt'
+NetworkB_weights = '../CNN_weights/NetworkB_weights_CNNopt.pt'
 
 NetworkA_stats = np.load('../data_files/NetworkA_statistics_1982-2017_allsamples.npz')
 NetworkB_stats = np.load('../data_files/NetworkB_statistics_1982-2017_allsamples.npz')
@@ -89,4 +89,8 @@ for member in range(nmembers):
         dSICN_pred[:,CAT][land_mask[:,pad_size:-pad_size,pad_size:-pad_size]==0] = 0
     dSICN[member] = dSICN_pred
 
-np.save('dSICN_increment.npy',scaling*dSICN)
+ds = xr.Dataset(data_vars=dict(dSICN=(['time', 'ct', 'yT', 'xT'], scaling*dSICN)), coords=dict(yT=forecasts['yT'], xT=forecasts['xT']))
+ds.dSICN.attrs['long_name'] = 'category_sea_ice_concentration_increments'
+ds.dSICN.attrs['units'] = 'area_fraction'
+ds['time'] = [time]
+ds.to_netcdf('dSICN_increment.nc')
