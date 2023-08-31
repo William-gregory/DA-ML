@@ -226,4 +226,3 @@ ds.dSICN.attrs['long_name'] = 'category_sea_ice_concentration_increments'
 ds.dSICN.attrs['units'] = 'area_fraction'
 ds['time'] = [date_out]
 ds.to_netcdf(savepath+date_in+'.CNN_increment.'+date_out+'.nc')
-os.system('gcp '+savepath+date_in+'.CNN_increment.'+date_out+'.nc' /archive/William.Gregory/SPEAR/+experiment+'/history/.')
