@@ -4,6 +4,7 @@ import xarray as xr
 import glob
 from preprocessing import pad
 from NNetwork import *
+from datetime import datetime,timedelta
 
 def pp(x):
     """
@@ -62,7 +63,8 @@ def liquidus_temperature_mush(Sbr):
         t_high = 0.0
 
     return ((Sbr / (M1_liq + N1_liq * Sbr)) + O1_liq) * t_high + ((Sbr / (M2_liq + N2_liq * Sbr)) + O2_liq) * (1.0 - t_high)
-  
+
+#dictionaries containing architecture/hyperparams for CNN
 argsA = {
 'kernel_size':3,
 'zero_padding':0,
@@ -93,7 +95,11 @@ experiment = os.getcwd().split('/')[-1].split('.')[0]
 savepath = '/lustre/f2/dev/William.Gregory/CNN_increments/'+experiment+'/'
 if os.path.exists(savepath)==False:
     os.mkdir(savepath)
-files = sorted(glob.glob('*ice_daily*'))
+y,m,d = np.genfromtxt('coupler.res',skip_header=1)[1,:3].astype(np.int32)
+date_in = datetime(y,m,d).strftime('%Y%m%d') #get date at which segment started
+date_out = (datetime(y,m,d) + timedelta(days=1)).strftime('%Y%m%d') #get date at which correction is applied
+
+files = sorted(glob.glob('../*ice_daily*')) #history files containing states to generate prediction
 f = xr.open_mfdataset(files,combine='nested',concat_dim='ens')
 states = f.mean('time')
 tend = f.diff('time').mean('time')
@@ -107,7 +113,7 @@ scaling = len(f.time)/5 #applied to the increments at the end in case the correc
 dSICN = np.zeros((nmembers,1,argsB['n_classes'],yT,xT)) #compute an increment for every ensemble member
 inputs = ['siconc','SST','UI','VI','HI','SW','TS','SSS']
 
-restarts = sorted(glob.glob('RESTART/ice_model.res*')) #prior model states (raw RESTART files)
+restarts = sorted(glob.glob('ice_model.res*')) #prior model states (raw RESTART files)
 rho_ice = 905.
 rho_snow= 330.
 phi_init = 0.75 #initial liquid fraction of frazil ice                                                                                                                                 
@@ -218,5 +224,5 @@ for member,file in enumerate(restarts): #compute increment and add to each ensem
 ds = xr.Dataset(data_vars=dict(dSICN=(['time', 'ct', 'yT', 'xT'], scaling*np.nanmean(dSICN,0))), coords=dict(yT=forecasts['yT'], xT=forecasts['xT']))
 ds.dSICN.attrs['long_name'] = 'category_sea_ice_concentration_increments'
 ds.dSICN.attrs['units'] = 'area_fraction'
-ds['time'] = [time]
-ds.to_netcdf(savepath+date+'.dSICN_increment.nc')
+ds['time'] = [date_out]
+ds.to_netcdf(savepath+date_in+'.CNN_increment.'+date_out+'.nc')
