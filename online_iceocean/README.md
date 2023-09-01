@@ -1,13 +1,8 @@
 ### Implementation of CNN into SPEAR ice-ocean simulations
 
-The CNN correction is applied back into SPEAR ice-ocean simulations as a bias correction tool. In other words, we run a short simulation/forecast of the model, e.g., for 5 days, at which point the CNN updates the restart files as a post-processing step, and then the model continues from this updated state for the next 5 days. Note that the scripts within this repository are for implementing a few different variations of CNN and/or DA correction schemes:
+The CNN correction is applied back into SPEAR ice-ocean simulations as a bias correction tool. In other words, we run a short simulation/forecast of the model, e.g., for 5 days, at which point the CNN updates the restart files as a post-processing step, and then the model continues from this updated state for the next 5 days. Note that the `CNN_SIS2.py' code will need to be changed depending on what CNN weights you want to use
 
-`DAML_G23.csh` - train a CNN (based on [Gregory et al., 2023](https://doi.org/10.48550/arXiv.2304.03832)) using all available data between 1982-2017. \
-`DAML_MEC.csh` - apply a "mean error correction" (mean computed over 1982-2017). \
-`DAML_OPTp1.csh` - train a CNN (as in G23) using all available data between 1982-2012. \
-`DAML_OPTp2.csh` - based on optimized network (following increments from DAML_OPTp1.csh).
-
-The post-processing step to implement a CNN or MEC into an xml is done in the following way:
+The post-processing step to implement a CNN into an xml is done in the following way:
 
     <freInclude name="OM4_postprocess">
         <postProcess>
@@ -18,15 +13,13 @@ The post-processing step to implement a CNN or MEC into an xml is done in the fo
              if (! -e coupler.res) then
                  echo model still running
              else
-                 cp DAML_G23.csh .
-                 csh DAML_G23.csh >& log_CNN.out
-                 rm log_CNN.out
-                 rm DAML_G23.csh
+                 cp DAML.csh .
+                 csh DAML.csh >& log_CNN.out
              endif
              
              # rest of post-processing script follows as normal
              
-`DAML_G23.csh` is shown here as an example, so just swap this out for another (e.g., `DAML_MEC.csh` or `DAML_OPTp2.csh`). To run a 2-step correction approach where first the CNN updates the state, and then we do DA on top, just add a call to the DART script below, as follows:
+To run a 2-step correction approach where first the CNN updates the state, and then we do DA on top, just add a call to the DART script below, as follows:
 
     <freInclude name="OM4_postprocess">
         <postProcess>
@@ -37,14 +30,12 @@ The post-processing step to implement a CNN or MEC into an xml is done in the fo
                  echo model still running
              else
                  # FIRST DO CNN
-                 cp DAML_G23.csh .
-                 csh DAML_G23.csh >& log_CNN.out
-                 rm log_CNN.out
-                 rm DAML_G23.csh
+                 cp DAML.csh .
+                 csh DAML.csh >& log_CNN.out
 
                  # NOW DO DA
                  cp data_assimilation_DART.csh .
-                 csh data_assimilation_DART.csh >&log.out || exit 12
+                 csh data_assimilation_DART.csh >& log.out || exit 12
                  wait
              endif
 
