@@ -168,7 +168,7 @@ for member,file in enumerate(restarts): #compute increment and add to each ensem
     dSICN_pred = Net(X,argsB,path=NetworkB_weights) #generate category SIC increment prediction
     for CAT in range(5):
         dSICN_pred[:,CAT][land_mask[:,pad_size:-pad_size,pad_size:-pad_size]==0] = 0
-    dSICN[member] = dSICN_pred
+    dSICN[member] = scaling*dSICN_pred
 
    ### ADD TO RESTART FILE ###                                                                                                                                                                                                    
     fr = xr.open_dataset(file)
@@ -223,7 +223,7 @@ for member,file in enumerate(restarts): #compute increment and add to each ensem
 
     fr.to_netcdf(file,mode='a')
 
-ds = xr.Dataset(data_vars=dict(dSICN=(['time', 'ct', 'yT', 'xT'], scaling*np.nanmean(dSICN,0))), coords=dict(yT=f['yT'], xT=f['xT']))
+ds = xr.Dataset(data_vars=dict(dSICN=(['time', 'ct', 'yT', 'xT'], np.nanmean(dSICN,0))), coords=dict(yT=f['yT'], xT=f['xT']))
 ds.dSICN.attrs['long_name'] = 'category_sea_ice_concentration_increments'
 ds.dSICN.attrs['units'] = 'area_fraction'
 ds['time'] = [date_out]
