@@ -6,7 +6,7 @@ For details on the data pre-processing, network architectures, and cross-validat
 `Xarray`\
 `Cartopy`
 
-The notebook shows how the 5-fold cross validation analysis was performed in order to do model selection. The python script shows how the model was trained using all data to derive a `final' network.
+The notebook shows how the 5-fold cross validation analysis was performed in order to do model selection. The python script shows how the model was trained using all data to derive a "final" network.
 
 ### Data
 
