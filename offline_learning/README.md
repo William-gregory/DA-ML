@@ -6,7 +6,7 @@ For details on the data pre-processing, network architectures, and cross-validat
 `Xarray`\
 `Cartopy`
 
-The optimized weights for each network are saved in the `CNN_weights` folder. Weights labelled 'CV' are those generated from cross-validation experiments to assess the network's generalization performance. Those labelled 'allsamples' have been trained using all data points, and should be used for subsequent analysis.
+The notebook shows how the 5-fold cross validation analysis was performed in order to do model selection. The python script shows how the model was trained using all data to derive a `final' network.
 
 ### Data
 
