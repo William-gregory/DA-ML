@@ -91,38 +91,40 @@ NetworkB_weights = '/ncrc/home2/William.Gregory/DA-ML/CNN_weights/NetworkB_weigh
 NetworkA_stats = np.load('/ncrc/home2/William.Gregory/DA-ML/data_files/NetworkA_statistics_1982-2017_allsamples.npz')
 NetworkB_stats = np.load('/ncrc/home2/William.Gregory/DA-ML/data_files/NetworkB_statistics_1982-2017_allsamples.npz')
 
-experiment = os.getcwd().split('/')[-1].split('.')[0]
-savepath = '/lustre/f2/dev/William.Gregory/CNN_increments/'+experiment+'/'
+experiment = os.getcwd().split('/')[-2].split('.')[0]
+user = os.popen('whoami').read().split('\n')[0]
+savepath = '/lustre/f2/dev/'+user+'/CNN_increments/'+experiment+'/'
 if os.path.exists(savepath)==False:
     os.mkdir(savepath)
-y,m,d = np.genfromtxt('coupler.res',skip_header=1)[1,:3].astype(np.int32)
-date_in = datetime(y,m,d).strftime('%Y%m%d') #get date at which segment started
-date_out = (datetime(y,m,d) + timedelta(days=1)).strftime('%Y%m%d') #get date at which correction is applied
 
-files = sorted(glob.glob('../*ice_daily*')) #history files containing states to generate prediction
+files = sorted(glob.glob('../*ice_daily*')) #history files containing states to generate prediction                                                                                                                                
 f = xr.open_mfdataset(files,combine='nested',concat_dim='ens')
+y,m,d = np.genfromtxt('coupler.res',skip_header=1)[1,:3].astype(np.int32)
+date_in = files[0].split('..')[1].split('.')[0] #get start date of history file                                                                                                                                                    
+date_out = datetime(y,m,d).strftime('%Y%m%d') #get date at which correction is applied   
+
 states = f.mean('time')
 tend = f.diff('time').mean('time')
 nmembers = len(f.ens)
 yT = len(f.yT)
 xT = len(f.xT)
 pad_size = 4
-scaling = len(f.time)/5 #applied to the increments at the end in case the correction is applied at different frequencies, e.g., 2-day vs 5-day etc.
-                        #CNN was originally trained on data from a 5-day DA cycle, so we just linearly scale.
+scaling = len(f.time)/5 #applied to the increments at the end in case the correction is applied at different frequencies, e.g., 2-day vs 5-day etc.                                                                                
+                        #CNN was originally trained on data from a 5-day DA cycle, so we just linearly scale. 
 
 dSICN = np.zeros((nmembers,1,argsB['n_classes'],yT,xT)) #compute an increment for every ensemble member
 inputs = ['siconc','SST','UI','VI','HI','SW','TS','SSS']
 
-restarts = sorted(glob.glob('ice_model.res*')) #prior model states (raw RESTART files)
+restarts = sorted(glob.glob('ice_model.res*')) #prior model states (raw RESTART files)                                                                                                                                             
 rho_ice = 905.
 rho_snow= 330.
-phi_init = 0.75 #initial liquid fraction of frazil ice                                                                                                                                 
-Si_new = 5 #salinity of mushy ice                                                                                                                                                      
+phi_init = 0.75 #initial liquid fraction of frazil ice                                                                                                                                                                             
+Si_new = 5 #salinity of mushy ice                                                                                                                                                                                                  
 Ti = min(liquidus_temperature_mush(Si_new/phi_init),-0.1)
 qi_new = enthalpy_ice(Ti, Si_new)
 hlim = [1.0e-10, 0.1, 0.3, 0.7, 1.1, 1.5]
 hmid = np.array([0.5*(hlim[n]+hlim[n+1]) for n in range(5)])
-i_thick = np.tile((hmid*rho_ice)[None,:,None,None],(1,1,320,360))
+i_thick = np.tile((hmid*rho_ice)[None,:,None,None],(1,1,yT,xT))
 
 for member,file in enumerate(restarts): #compute increment and add to each ensemble member    
     ### NETWORK A ### 
@@ -168,7 +170,7 @@ for member,file in enumerate(restarts): #compute increment and add to each ensem
         dSICN_pred[:,CAT][land_mask[:,pad_size:-pad_size,pad_size:-pad_size]==0] = 0
     dSICN[member] = dSICN_pred
 
-    ### ADD TO RESTART FILE ###
+   ### ADD TO RESTART FILE ###                                                                                                                                                                                                    
     fr = xr.open_dataset(file)
     prior = fr.part_size.to_numpy()
     post = np.zeros((1,6,320,360))
@@ -177,52 +179,52 @@ for member,file in enumerate(restarts): #compute increment and add to each ensem
     post[post<0] = 0
     post[post>1] = 1
 
-    cond1 = np.where((prior[:,1:]<=0) & (post[:,1:]>0)) #where original state was ice-free, but CNN has added ice
-    cond2 = np.where((prior[:,1:]>0) & (post[:,1:]<=0)) #where original state contained ice, but CNN has made ice-free
+    cond1 = np.where((prior[:,1:]<=0) & (post[:,1:]>0)) #where original state was ice-free, but CNN has added ice                                                                                                                  
+    cond2 = np.where((prior[:,1:]>0) & (post[:,1:]<=0)) #where original state contained ice, but CNN has made ice-free                                                                                                             
 
-    h_ice = f.h_ice.to_numpy()
+    h_ice = fr.h_ice.to_numpy()
     h_ice[cond1] = i_thick[cond1]
     h_ice[cond2] = 0
 
-    h_snow = f.h_snow.to_numpy()
+    h_snow = fr.h_snow.to_numpy()
     h_snow[cond1] = 0
     h_snow[cond2] = 0
 
-    enth_ice = f.enth_ice.to_numpy()
+    enth_ice = fr.enth_ice.to_numpy()
     for layer in range(4):
         enth_ice[:,layer][cond1] = qi_new
         enth_ice[:,layer][cond2] = 0
-        
-    enth_snow = f.enth_snow.to_numpy()
+
+    enth_snow = fr.enth_snow.to_numpy()
     enth_snow[0][cond1] = 0
     enth_snow[0][cond2] = 0
 
-    T_skin = f.T_skin.to_numpy()
+    T_skin = fr.T_skin.to_numpy()
     T_skin[cond1] = Ti
     T_skin[cond2] = -1.8
 
-    sal_ice = f.sal_ice.to_numpy()
+    sal_ice = fr.sal_ice.to_numpy()
     for layer in range(4):
         sal_ice[:,layer][cond1] = Si_new
         sal_ice[:,layer][cond2] = 0
 
-    h_pond = f.h_pond.to_numpy()
+    h_pond = fr.h_pond.to_numpy()
     h_pond[cond1] = 0
     h_pond[cond2] = 0
 
-    f.part_size.loc[:] = post
-    f.h_ice.loc[:] = h_ice
-    f.h_snow.loc[:] = h_snow
-    f.h_pond.loc[:] = h_pond
-    f.enth_ice.loc[:] = enth_ice
-    f.enth_snow.loc[:] = enth_snow
-    f.T_skin.loc[:] = T_skin
-    f.sal_ice.loc[:] = sal_ice
-    
-    f.to_netcdf(file,mode='a')
+    fr.part_size.loc[:] = post
+    fr.h_ice.loc[:] = h_ice
+    fr.h_snow.loc[:] = h_snow
+    fr.h_pond.loc[:] = h_pond
+    fr.enth_ice.loc[:] = enth_ice
+    fr.enth_snow.loc[:] = enth_snow
+    fr.T_skin.loc[:] = T_skin
+    fr.sal_ice.loc[:] = sal_ice
 
-ds = xr.Dataset(data_vars=dict(dSICN=(['time', 'ct', 'yT', 'xT'], scaling*np.nanmean(dSICN,0))), coords=dict(yT=forecasts['yT'], xT=forecasts['xT']))
+    fr.to_netcdf(file,mode='a')
+
+ds = xr.Dataset(data_vars=dict(dSICN=(['time', 'ct', 'yT', 'xT'], scaling*np.nanmean(dSICN,0))), coords=dict(yT=f['yT'], xT=f['xT']))
 ds.dSICN.attrs['long_name'] = 'category_sea_ice_concentration_increments'
 ds.dSICN.attrs['units'] = 'area_fraction'
 ds['time'] = [date_out]
-ds.to_netcdf(savepath+date_in+'.CNN_increment.'+date_out+'.nc')
+ds.to_netcdf(savepath+date_in+'.CNN_increment.'+date_out+'.nc') #save ensemble mean increment
