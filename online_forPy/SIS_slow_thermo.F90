@@ -474,7 +474,7 @@ subroutine slow_thermodynamics(IST, dt_slow, CS, OSS, FIA, XSF, IOF, G, US, IG)
 
   !!! WG !!!
   if (CS%use_G23_CNN) &       
-       call CNN_inference(IST, OSS, FIA, G, IG, US, CS%python, CS%CNN, dt_slow)
+       call CNN_inference(IST, OSS, FIA, G, IG, CS%python, CS%CNN, dt_slow)
   !!! WG end !!!
 
   if (CS%column_check) &
