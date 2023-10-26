@@ -9,3 +9,7 @@ The `offline_learning` folder contains code and data relating to the article [Gr
 ### Online ice-ocean
 
 Example scripts of how to implement the trained CNN into SPEAR ice-ocean simulations as a way to correct short-forecasts, as outlined in the article [Gregory et al., 2023b](https://arxiv.org/pdf/2310.02488.pdf).
+
+### Online forPy
+
+Example scripts of implementing the CNN into SIS2, via the Forpy Fortran-Python interface. This uses the approach outlined in [Zhang et al., 2023](https://agupubs.onlinelibrary.wiley.com/doi/pdfdirect/10.1029/2023MS003697).
