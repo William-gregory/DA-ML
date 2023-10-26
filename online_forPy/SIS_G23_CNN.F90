@@ -97,15 +97,14 @@ subroutine CNN_init(Time,G,US,param_file,diag,CS)
 end subroutine CNN_init
 
 !> Manage input and output of CNN model
-subroutine CNN_inference(IST, OSS, FIA, G, IG, US, CS, CNN, dt_slow)
+subroutine CNN_inference(IST, OSS, FIA, G, IG, CS, CNN, dt_slow)
   type(ice_state_type),      intent(inout)  :: IST !< A type describing the state of the sea ice
   type(fast_ice_avg_type),   intent(in)     :: FIA !< A type containing averages of fields
                                                    !! (mostly fluxes) over the fast updates
   type(ocean_sfc_state_type), intent(inout) :: OSS !< A structure containing the arrays that describe
                                                    !! the ocean's surface state for the ice model.
   type(SIS_hor_grid_type),   intent(in)     :: G      !< The horizontal grid structure
-  type(ice_grid_type),       intent(in)     :: IG     !< Sea ice specific grid
-  type(unit_scale_type),      intent(in)    :: US         !< A dimensional unit scaling type  
+  type(ice_grid_type),       intent(in)     :: IG     !< Sea ice specific grid 
   type(python_interface),    intent(in)     :: CS     !< Python interface object
   type(CNN_CS),              intent(in)     :: CNN    !< Control structure for CNN
   real,                      intent(in)     :: dt_slow !< The thermodynamic time step [T ~> s]
