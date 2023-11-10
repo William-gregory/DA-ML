@@ -5,8 +5,13 @@ This repository contains the Python script `NNetwork` which is called in Fortran
 Specifically, see source code:
 
 - [SIS_slow_thermo.F90](https://github.com/William-gregory/SIS2/tree/forpy_dev/src/SIS_slow_thermo.F90)
+  The update to category sea ice concentrations happens after the thermodynamic update to sea ice
 - [SIS_G23_CNN.F90](https://github.com/William-gregory/SIS2/tree/forpy_dev/src/SIS_G23_CNN.F90)
+  State variables are collated into an input array for the network. Part_size is then updated based on the predicted correction, and sea ice variables are subequently updated
+  depending on whether ice has been added/removed to a given category
 - [Forpy_interface.F90](https://github.com/William-gregory/SIS2/tree/forpy_dev/src/Forpy_interface.F90)
+  Forpy routine which calls the function inside `NNetwork`
 - [forpy_mod.F90](https://github.com/William-gregory/SIS2/tree/forpy_dev/src/forpy_mod.F90)
+  Forpy interface (unchanged from default version)
 
 For compiling the MOM6/SIS2 model code in order to run Forpy, see the steps outlined in [MOM6-examples](https://github.com/William-gregory/MOM6-examples/blob/forpy_dev/COMPILE_MOM6SIS2.sh).
