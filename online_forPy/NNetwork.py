@@ -6,10 +6,10 @@ from collections import OrderedDict
 def DAML(XA,XB,dt_slow):
 
     class CNN(nn.Module):
-        """                                                                                                                                                                                                                              
-        Fully CNN with 4 convolutional layers                                                                                                                                                                                            
-        The input 'args' should be a dictionary containing                                                                                                                                                                               
-        details of the network hyperparameters and architecture                                                                                                                                                                          
+        """
+        Fully CNN with 4 convolutional layers
+        The input 'args' should be a dictionary containing
+        details of the network hyperparameters and architecture
         """
 
         def __init__(self,args):
@@ -34,15 +34,15 @@ def DAML(XA,XB,dt_slow):
             return self.conv_net(x)
 
     def Net(x,args,path=None):
-      """                                                                                                                                                                                                                              
-        Function to train CNN and/or perform inference.                                                                                                                                                                                  
-        Can either provide a 'path' to the pre-computed network weights,                                                                                                                                                                 
-        or leave as None to perform optimization from scratch (the latter                                                                                                                                                                
-        will be very slow). If path is None, then the optimization will be                                                                                                                                                               
-        performed using training data 'x_train' and 'y_train'. Inference                                                                                                                                                                 
-        will be done on 'x_valid' and 'y_valid' in either case.                                                                                                                                                                          
-        The input 'args' should be a dictionary containing                                                                                                                                                                               
-        details of the network hyperparameters and architecture                                                                                                                                                                          
+        """
+        Function to train CNN and/or perform inference.
+        Can either provide a 'path' to the pre-computed network weights,
+        or leave as None to perform optimization from scratch (the latter
+        will be very slow). If path is None, then the optimization will be
+        performed using training data 'x_train' and 'y_train'. Inference
+        will be done on 'x_valid' and 'y_valid' in either case.
+        The input 'args' should be a dictionary containing
+        details of the network hyperparameters and architecture
         """
 
         torch.manual_seed(args['seed'])
@@ -77,21 +77,25 @@ def DAML(XA,XB,dt_slow):
     'seed':711,
     }
 
-    NetworkA_weights = 'NetworkA_weights_1982-2017_notend_P2.pt'
-    NetworkB_weights = 'NetworkB_weights_1982-2017_notend_P2.pt'
+    NetworkA_weights = '/lustre/f2/dev/William.Gregory/CNNForpy/NetworkA_weights_1982-2017_notend_P2.pt'
+    NetworkB_weights = '/lustre/f2/dev/William.Gregory/CNNForpy/NetworkB_weights_1982-2017_notend_P2.pt'
 
-    NetworkA_stats = np.load('NetworkA_statistics_1982-2017_allsamples_notend.npz')
-    NetworkB_stats = np.load('NetworkB_statistics_1982-2017_allsamples_notend.npz')
+    NetworkA_stats = np.load('/lustre/f2/dev/William.Gregory/CNNForpy/NetworkA_statistics_1982-2017_allsamples_notend.npz')
+    NetworkB_stats = np.load('/lustre/f2/dev/William.Gregory/CNNForpy/NetworkB_statistics_1982-2017_allsamples_notend.npz')
 
     sec5day = 432000
     scale = sec5day/dt_slow
-    XA = XA[None]
-    XB = XB[None]
+    halo = 4
 
+    XA = np.transpose(XA[None],(0,1,3,2)) #(1,9,nj+halo,ni+halo)
+    XB = np.transpose(XB[None,:,halo:-halo,halo:-halo],(0,1,3,2)) #(1,6,nj,ni)
+    nj,ni = XA.shape[2],XA.shape[3]
+    mj,mi = XB.shape[2],XB.shape[3]
+    
     for N in range(XA.shape[1]-1):
         XA[:,N] = (XA[:,N]-NetworkA_stats['mu'][N])/NetworkA_stats['sigma'][N]
         XA[:,N][XA[:,-1]==0] = 0
-
+        
     XA[np.isnan(XA)] = 0
     argsA['n_channels'] = XA.shape[1]
     dSIC = Net(XA,argsA,path=NetworkA_weights)
@@ -107,6 +111,9 @@ def DAML(XA,XB,dt_slow):
     dSICN = Net(XB,argsB,path=NetworkB_weights)
     for k in range(dSICN.shape[1]):
         dSICN[:,k][XB[:,-1]==0] = 0
-    dSICN = np.transpose(dSICN[0]/scale,(1,2,0)) #(ni, nj, nk)                                                                                                                                                                           
-
+    
+    dSICN = np.transpose(dSICN[0]/scale,(2,1,0)) #(ni,nj,5)
+    dSICN = np.vstack((np.vstack((np.zeros((halo,mj,argsB['n_classes'])),dSICN)),np.zeros((halo,mj,argsB['n_classes'])))) #(ni+halo,nj,5)
+    dSICN = np.hstack((np.hstack((np.zeros((ni,halo,argsB['n_classes'])),dSICN)),np.zeros((ni,halo,argsB['n_classes'])))) #(ni+halo,nj+halo,5)
+    
     return dSICN
