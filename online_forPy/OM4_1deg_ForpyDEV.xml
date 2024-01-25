@@ -1,0 +1,808 @@
+<?xml version="1.0"?>
+<!-- FRE Usage documentation: http://www.gfdl.noaa.gov/fms/fre -->
+<!--Quick start guide
+This xml consists of 1 degree Ocean-Ice experiments with JRA version1.5 interannual forcings.
+
+module load fre/bronx-21
+frerun  -x OM4_1deg_ForpyDEV.xml -p ncrc5.intel22 -t prod OM4_1deg_JRA_FREE
+frerun  -x OM4_1deg_ForpyDEV.xml -p ncrc5.intel22 -t prod OM4_1deg_JRA_Forpy_G23noSW
+
+-->
+
+<experimentSuite rtsVersion="4" xmlns:xi="http://www.w3.org/2001/XInclude">
+  <property name="RELEASE"      value="2023.01"/>    <!-- git tag for general component source code-->
+  <property name="FMS_GIT_TAG"  value="$(RELEASE)"/> <!-- git tag for shared source code -->
+  <property name="CPL_GIT_TAG"  value="$(RELEASE)"/> <!-- git tag for coupler source code -->
+  <property name="NULL_TAG"     value="2021.03"/>    <!-- git tag for atmos_null and land_null source code -->
+  <property name="ICE_PARAM_TAG"     value="master"/><!-- git tag for ice_param source code -->
+  <property name="OCEAN_BGC_GIT_TAG" value="2023.01"/><!-- git tag for ocean_shared source code -->
+  <property name="MOM6_DATE"    value="20230630"/> <!-- arbitrary date string for MOM6 source code -->
+  <property name="MOM6_GIT_TAG" value="dev/gfdl"/>  <!-- git tag for MOM6-examples source code -->
+  <property name="MOM6_GIT_FIX" value=""/>   <!-- git tag for MOM6 source code -->
+  <property name="FRE_STEM"     value="fre/FMS$(RELEASE)_mom6_$(MOM6_DATE)"/> <!-- customize as needed -->
+  <!-- Please make sure to change "YOURGROUPLETTER" to your group, such as b, f, g, m, o... -->
+  <property name="GFDL_GROUP"   value="gfdl_o"/><!-- Replace YOURGROUPLETTER with GFDL group letter -->
+  <property name="OM4_ANALYSIS" value="ice_ocean_SIS2/OM4_025"/>  <!--example containing .frepp scripts for analysis-->
+  <!--Production run properties. Users can modify these according to their need and/or performance analysis-->
+  <property name="PROD_SIMTIME"   value="4"/>
+  <!--Post-processing  chunk lengths -->
+  <property name="CHUNK_LENGTH_A" value="5yr"/>
+  <property name="CHUNK_LENGTH_B" value="20yr"/>
+  <!--Start year of PP -->
+  <property name="PP_START_YEAR"   value="2018"/>      <!--Use these values for CORE2 dynamic forcing runs -->
+  <property name="FRE_VERSION"     value="bronx-21"/> <!-- fre version to be used -->
+  <property name="ProjectID"       value="CMIP6"/>      <!-- database top level -->
+  <property name="ANALYSIS_SWITCH" value="on"/>       <!-- on/off switch for ATM/LND analysis -->
+  <!--pp fixer scripts for CMIP6-->
+  <property name="CMIP6_PP_FIXER_SCRIPTS_DIR" value="/home/oar.gfdl.cmip6/CMIP6_publishing/pp_fixer_scripts"/>
+  <property name="CMIP6_PP_FIXER_SWITCH" value="off"/>
+
+  <!--Users need not change the following properties -->
+  <property name="reference_tag"  value="FMS2022.02_mom6_20220703"/> <!-- Reference answers for frecheck -->
+  <!-- The following properties are for testing/debugging purposes and should normally be empty-->
+  <property name="MODIFIER"   value=""/>
+  <property name="DEBUGLEVEL" value=""/>
+  <property name="PLATINFO"   value=""/>  <!--This is necessary only if you want to run exact same experiment on multiple platforms-->
+  <property name="BUILD_DATE" value=""/>  <!--Not used-->
+
+  <!--
+  <property name="AWG_INPUT_HOME_GAEA"  value="awg_include"/>
+  -->
+  <property name="AWG_INPUT_HOME_GAEA"  value="/ncrc/home1/Yongfei.Zhang/xml/awg_include"/>
+  <property name="AWG_INPUT_HOME_GFDL"  value="/nbhome/$USER/$(FRE_STEM)$(PLATINFO)/$(name)/mdt_xml/awg_include"/>
+  <property name="append_to_setup_csh"  value="set fyear=2018"/><!--The start year of forcing dataseti. FRE hack to set fyear.-->
+  <property name="PROG_MAIN"   value="coupler/coupler_main.o"/>
+  <setup>
+    <xi:include href="/ncrc/home2/William.Gregory/xml/platforms.xml" xpointer="xpointer(//freInclude/platform[@name='ncrc5.intel22'])"/>
+    <xi:include href="/ncrc/home2/William.Gregory/xml/platforms.xml" xpointer="xpointer(//freInclude/platform[@name='gfdl.ncrc5-intel22'])"/>
+  </setup>
+  <property name="gfdlO_pdata"      value="$(CMIP6_ARCHIVE_ROOT)/../../gfdl_O"/>
+  <!--JRA dataset location. There are used in awg_include/xml_building_blocks/om4_common.xml-->
+  <property name="JRA_dataset"      value="/gpfs/f5/gfdl_o/world-shared/datasets/reanalysis/JRA55-do/v1.5.0/padded_no_null_char/"/>
+  <property name="JRA_dataset_1deg"      value="/gpfs/f5/gfdl_o/scratch/William.Gregory/JRA_runoff_1deg/"/>
+  <property name="JRA_version" value="1-5-0"/>
+  <property name="OISST_version" value="2p0"/>
+
+  <freInclude name="resourceparams_O4671_production">
+           <resources jobWallclock="16:00:00"  segRuntime="3:00:00">
+             <ocn ranks="4671" layout = "90,72"   io_layout = "1,4" mask_table="mask_table.1809.90x72.4671" threads="1"/>
+             <ice              layout = "90,72"   io_layout = "1,4" mask_table="mask_table.1809.90x72.4671"/>
+           </resources>
+  </freInclude>
+  <freInclude name="resourceparams_O1756">
+	     <resources jobWallclock="01:30:00">
+	       <ice                           layout = "32,72"   io_layout = "1,4" mask_table="mask_table.548.32x72.1756"/>
+	       <ocn ranks="1756" threads="1"  layout = "32,72"   io_layout = "1,4" mask_table="mask_table.548.32x72.1756"/>
+	     </resources>
+  </freInclude>
+
+   <!--= COMPILE =-->
+   <property name="LIBS_ROOT"   value="MOM6_SIS2_compile$(MODIFIER)"/>
+   <property name="FMS_LIB_DIR" value="./$(LIBS_ROOT)/$(platform)-$(target)/exec"/>
+   <property name="MY_LIBS"     value="$(EXEC_ROOT)/$(FMS_LIB_DIR)"/>
+
+   <!--experiment name="MOM6_SIS2_compile"-->
+   <xi:include href="/ncrc/home1/Yongfei.Zhang/xml/om4_compile.xml" xpointer="xpointer(//freInclude/experiment[@name='MOM6_SIS2_compile'])"/>
+   <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/om4_compile.xml" xpointer="xpointer(//freInclude/experiment[@name='MOM6_SIS2_compile_FMS2'])"/>
+   <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/om4_compile.xml" xpointer="xpointer(//freInclude/experiment[@name='MOM6_SIS2_compile_symmetric_FMS2'])"/>
+   <xi:include href="/ncrc/home1/Yongfei.Zhang/xml/om4_compile.xml" xpointer="xpointer(//freInclude/experiment[@name='MOM6_SIS2_compile_debug'])"/>
+   <!--/experiment-->
+
+   <!--The property MOM6_EXAMPLES should point to the mom6 directory that is checked out. It is needed by MOM6 to access its input data files-->
+   <!--<property name="MOM6_EXAMPLES"  value="$root/$(LIBS_ROOT)/src/mom6"/> -->
+   <property name="MOM6_EXAMPLES"  value="/gpfs/f5/gfdl_o/scratch/William.Gregory/MOM6-examples/"/>
+
+   <experiment name="OM4_1deg_JRA_FREE">
+    <description>
+global 1degree ocean_ice experiment
+JRA55do1-5 dynamic inter_annual forcing data
+No additional diurnal cycle imposed
+turn on ice age tracer -areal -maxval of ice age across layers
+use Will Cooke's mom overrides
+use JRA runoff
+    </description>
+
+    <executable file="/gpfs/f5/gfdl_o/scratch/William.Gregory/MOM6-examples/build/ice_ocean_SIS2/MOM6"/>
+
+    <input>
+      <dataFile label="initCond" target="INPUT/" chksum="" size="" timestamp="">
+	<dataSource site="ncrc">/gpfs/f5/gfdl_o/scratch/William.Gregory/initCond_SPEAR/REMAP/OM4_1deg_JRA_SICDA_F02/20180101.tar</dataSource>
+        <dataSource site="gfdl">/gpfs/f5/gfdl_o/scratch/William.Gregory/initCond_SPEAR/misc/C96_LM3_OM4_01_CanadianArchipelago.remapped.v20171217.tar</dataSource>	
+      </dataFile>
+      <namelist name="ensemble_nml">
+        ensemble_size=2
+      </namelist>
+      <namelist name="coupler_nml">
+       months = $months,
+       days   = $days,
+       current_date = 2018,1,1,0,0,0,
+       hours = 0
+       minutes = 0
+       seconds = 0
+       calendar = 'noleap',
+       dt_cpld  = 1800,
+       dt_atmos = 1800,
+       do_atmos = .false.,
+       do_land = .false.,
+       do_ice = .true.,
+       do_ocean = .true.,
+       atmos_npes = 0,
+       ocean_npes = 0,
+       concurrent = .false.
+       use_lag_fluxes=.false.
+       atmos_nthreads = $atm_threads
+       ocean_nthreads = $ocn_threads
+     </namelist>
+     <namelist name="xgrid_nml">
+       make_exchange_reproduce = .true.
+       interp_method = 'second_order'
+     </namelist>
+     <namelist name="icebergs_nml">
+       make_calving_reproduce=.TRUE.
+        really_debug=.FALSE.
+        debug=.FALSE.
+        verbose=.FALSE.
+        verbose_hrs=7200
+        use_operator_splitting=.TRUE.
+        bergy_bit_erosion_fraction=0.0
+        sicn_shift=0.1
+        parallel_reprod=.TRUE.
+        traj_sample_hrs=0
+        add_weight_to_ocean=.false.
+        tidal_drift = 0.005 
+        coastal_drift = 0.001 
+
+     </namelist>
+     <namelist name="fms_nml">
+       clock_grain='ROUTINE'
+       clock_flags='NONE'
+       domains_stack_size = 8000000
+       stack_size =0
+     </namelist>
+     <namelist name="fms_io_nml" >
+       fms_netcdf_restart=.true.
+       threading_read='multi'
+       max_files_r = 800
+       max_files_w = 800
+     </namelist>
+     <namelist name="atmos_model_nml" >
+       layout= 0, 0
+     </namelist>
+     <!--verona-->
+     <namelist name="sat_vapor_pres_nml">
+      construct_table_wrt_liq = .true.,
+      construct_table_wrt_liq_and_ice = .true.,
+     </namelist>
+     <namelist name="diag_manager_nml">
+       max_files = 400
+       flush_nc_files=.false.
+       max_axes = 400,
+       max_num_axis_sets = 400,
+       max_input_fields = 1200
+       max_output_fields = 1800
+       mix_snapshot_average_fields=.false.
+     </namelist>
+     
+     <!--<namelist name="data_override_nml">
+       reproduce_null_char_bug = .true. !this is needed to reproduce old (wrong) answers with FMS2020.04
+     </namelist>-->
+
+     <dataFile label="namelist" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource site="ncrc">$(MOM6_EXAMPLES)/ice_ocean_SIS2/OM_1deg/input.nml</dataSource>
+        <dataSource site="orion">$(MOM6_EXAMPLES)/ice_ocean_SIS2/OM_1deg/input.nml</dataSource>
+        <dataSource site="gfdl">$(NB_ROOT)/mom6/ice_ocean_SIS2/OM_1deg/input.nml</dataSource>
+     </dataFile>
+
+     <!--common setup for JRA forcing dataset and data_table-->
+     <xi:include href="/ncrc/home2/William.Gregory/xml/awg_include/xml_building_blocks/om4_common.xml" xpointer="xpointer(//freInclude[@name='OM4_JRA_always_csh']/input/node())"/>
+     <xi:include href="/ncrc/home2/William.Gregory/xml/awg_include/xml_building_blocks/om4_common.xml" xpointer="xpointer(//freInclude[@name='JRA_data_table']/input/node())"/>
+     <!--append the resolution dependent runoff override-->
+
+     <dataTable order="append">
+#JRA runoff
+"ICE" , "runoff"        , "friver"      , "./INPUT/JRA_friver_360x320.nc", "none" ,  1.0  
+"ICE" , "calving"       , "licalvf"     , "./INPUT/JRA_licalvf_360x320.nc", "none" ,  1.0  
+
+     </dataTable>
+
+     <!--OM4 gridSpec mosaic datasets-->
+    <xi:include xpointer="xpointer(//freInclude[@name='OM4_1deg_grid']/input/node())"/>
+     <!--MOM6 Input datasets-->
+     <xi:include xpointer="xpointer(//freInclude[@name='OM4_1deg_data']/input/node())"/>
+     <!--SIS2 Input datasets-->
+     <xi:include xpointer="xpointer(//freInclude[@name='SIS2_data']/input/node())"/>
+
+     <diagTable>
+$name
+$baseDate
+"ocean_5daily",            5, "days",   1, "days", "time"
+"ocean_daily",             1, "days",   1, "days", "time"
+"ocean_model", "SSU",          "ssu",              "ocean_5daily", "all", "mean", "none",2
+"ocean_model", "SSV",          "ssv",              "ocean_5daily", "all", "mean", "none",2
+"ocean_model", "tos",          "tos",              "ocean_5daily", "all", "mean", "none",2
+"ocean_model", "sos",          "sos",              "ocean_5daily", "all", "mean", "none",2
+"ocean_model", "zos",          "zos",              "ocean_5daily", "all", "mean", "none",2
+"ocean_model", "heat_added",   "heat_added",       "ocean_5daily", "all", "mean", "none",2
+"ocean_model", "vprec",        "vprec",            "ocean_5daily", "all", "mean", "none",2
+"ocean_model", "total_heat_content_vprec", "total_heat_content_vprec", "ocean_daily", "all", "mean", "none",2
+
+"ice_daily",              1, "days", 1, "days", "time"
+"ice_model", "siu",        "siu",        "ice_daily", "all", "mean", "none", 2
+"ice_model", "siv",        "siv",        "ice_daily", "all", "mean", "none", 2
+"ice_model", "siconc",     "siconc",     "ice_daily", "all", "mean", "none", 2
+"ice_model", "BSNK",       "BSNK",       "ice_daily", "all", .true., "none", 2
+"ice_model", "CN",         "CN",         "ice_daily", "all", .true., "none", 2
+"ice_model", "GEOLAT",     "GEOLAT",     "ice_daily", "all", .false., "none", 2
+"ice_model", "GEOLON",     "GEOLON",     "ice_daily", "all", .false., "none", 2
+"ice_model", "HI",         "HI",         "ice_daily", "all", .true., "none", 2
+"ice_model", "HS",         "HS",         "ice_daily", "all", .true., "none", 2
+"ice_model", "LH",         "LH",         "ice_daily", "all", .true., "none", 2
+"ice_model", "LSNK",       "LSNK",       "ice_daily", "all", .true., "none", 2
+"ice_model", "LSRC",       "LSRC",       "ice_daily", "all", .true., "none", 2
+"ice_model", "LW",         "LW",         "ice_daily", "all", .true., "none", 2
+"ice_model", "MI",         "MI",         "ice_daily", "all", .true., "none", 2
+"ice_model", "SSS",        "SSS",        "ice_daily", "all", .true., "none", 2
+"ice_model", "SST",        "SST",        "ice_daily", "all", .true., "none", 2
+"ice_model", "SW",         "SW",         "ice_daily", "all", .true., "none", 2
+"ice_model", "TS",         "TS",         "ice_daily", "all", .true., "none", 2
+"ice_model", "UI",         "UI",         "ice_daily", "all", .true., "none", 2
+"ice_model", "VI",         "VI",         "ice_daily", "all", .true., "none", 2
+"ice_model", "XPRT",       "XPRT",       "ice_daily", "all", .true., "none", 2
+     </diagTable>
+
+     <!--field_tables-->
+     <dataFile label="fieldTable" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource site="ncrc">$(MOM6_EXAMPLES)/ice_ocean_SIS2/OM_1deg/field_table</dataSource>
+        <dataSource site="orion">$(MOM6_EXAMPLES)/ice_ocean_SIS2/OM_1deg/field_table</dataSource>
+        <dataSource site="gfdl">$(NB_ROOT)/mom6/ice_ocean_SIS2/OM_1deg/field_table</dataSource>
+     </dataFile>
+
+
+     <!--MOM_overrides-->
+     <csh>
+        <![CDATA[
+if ( $currentSeg == 1 ) then
+   #Take current date from coupler_nml
+   if(-e $work/INPUT/coupler.res ) \rm -rf $work/INPUT/coupler.res
+endif
+
+cat > $work/INPUT/MOM_override << MOM_OVERRIDE_EOF
+
+#override TOPO_EDITS_FILE = "topo_edits_011818.nc"
+#override CHANNEL_LIST_FILE = MOM_channels_SPEAR
+#override SALT_RESTORE_FILE = "salt_restore_PHC2.1degOM4.v20180716.nc"
+#override SALT_RESTORE_VARIABLE = "SALT"   ! default = "salt"
+#override FLUXCONST_TEMP = 4.0 
+#override RESTORE_TEMPERATURE = TRUE
+#override SPEAR_ECDA_SST_RESTORE_TFREEZE = TRUE
+#override SST_RESTORE_FILE  = "temp_restore.nc" 
+#override SST_RESTORE_VARIABLE = "temp"
+
+#override KV_ML_INVZ2 = 1.0E-4
+#override DEFAULT_ANSWER_DATE=20181231
+#override INTERNAL_WAVE_SPEED_BETTER_EST = False
+
+#override REMAP_UV_USING_OLD_ALG = True
+#override Z_INIT_REMAP_OLD_ALG = True
+#override FIX_USTAR_GUSTLESS_BUG =False
+#override GRID_ROTATION_ANGLE_BUGS = True
+#override KAPPA_SHEAR_ALL_LAYER_TKE_BUG = True
+#override KAPPA_SHEAR_ITER_BUG = True
+#override USE_GM_WORK_BUG = True
+#override USE_MLD_ITERATION = False
+#override USE_TRIPOLAR_GEOLONB_BUG =True
+#override GUST_CONST = 0.02
+#override MEKE_ALPHA_EADY = 0.05
+#override MEKE_ALPHA_RHINES = 0.05
+#override MIN_SALINITY = 0.01
+
+#override KH_BG_2D_BUG=True
+#override USE_DIABATIC_TIME_BUG=True
+#override USE_INACCURATE_PGF_RHO_ANOM=True
+#override NDIFF_USE_UNMASKED_TRANSPORT_BUG=True
+#override RESTART_CHECKSUMS_REQUIRED = False
+
+MOM_OVERRIDE_EOF
+
+# SIS_override_X is created offline and copied to the inputDir
+cp /gpfs/f5/gfdl_o/scratch/William.Gregory/SIS_overrides/SIS_override_* $work/INPUT/
+ 
+     ]]></csh>
+
+   </input>
+
+    <runtime>
+      <production simTime="$(PROD_SIMTIME)" units="years">
+	  <segment simTime="12" units="months"/>    
+          <resources jobWallclock="16:00:00"  segRuntime="1:00:00">
+             <ocn ranks="72" layout = "12,6"   io_layout = "1,1" mask_table="MOM_mask_table" threads="1"/>
+		 <ice              layout = "12,6"   io_layout = "1,1" mask_table="MOM_mask_table"/>
+          </resources>
+      </production>
+      <regression name="basic">
+        <run months="1" > <xi:include xpointer="xpointer(//freInclude[@name='resourceparams_O1756']/node())"/> </run>
+      </regression>
+      <regression name="rts">
+        <run days="15 16" > <xi:include xpointer="xpointer(//freInclude[@name='resourceparams_O1756']/node())"/> </run>
+         <!--the following should reproduce eachother but not the basic because basic uses mask_table-->
+         <run days="2" > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O864x2']/node())"/> </run>
+         <run days="2" > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O1440']/node())"/> </run>
+         <run days="2" > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O1296']/node())"/> </run>
+      </regression>
+      <regression name="debug2">
+        <run months="1" > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O2304']/node())"/> </run>
+      </regression>
+      <regression name="debug">
+        <run days="2"  > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O864']/node())"/> </run>
+      </regression>
+      <regression name="big">
+	  <run days="1" > 
+	     <resources jobWallclock="00:30:00">
+               <ice                            layout = "90,144"  io_layout = "1,4" mask_table="mask_table.3785.90x144.9175"/>
+               <ocn ranks="9175" threads="1"   layout = "90,144"  io_layout = "1,4" mask_table="mask_table.3785.90x144.9175"/>
+	     </resources>
+          </run>   
+      </regression>
+      <regression name="timing">
+        <run months="1" > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O1756']/node())"/> </run>
+        <run months="1" > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O2997']/node())"/> </run>
+        <run months="1" > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O3782']/node())"/> </run>
+        <run months="1" > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O4671']/node())"/> </run>
+        <run months="1" > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O6430']/node())"/> </run>
+        <run months="1" > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O9175']/node())"/> </run>
+      </regression>
+<!--
+      <regression name="timings">
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O1756']/node())"/> </run>
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O910']/node())"/> </run>
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O1125']/node())"/> </run>
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O1970']/node())"/> </run>
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O2432']/node())"/> </run>
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O2997']/node())"/> </run>
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O3551']/node())"/> </run>
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O3782']/node())"/> </run>
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O4671']/node())"/> </run>
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O6430']/node())"/> </run>
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O9175']/node())"/> </run>
+      </regression>
+-->
+      <reference restart="$(REFERENCE)/archive/1x0m2d_864x1o/restart/19580103.tar"/>
+      <reference restart="$(REFERENCE)/archive/1x1m0d_1756x1o/restart/19580201.tar"/>
+    </runtime>
+
+    <postProcess>
+      <csh><![CDATA[
+         cd $work
+         #Make a directory to trick FRE to pick up and archive in ascii
+         mkdir extra.results
+         mv *velocity_truncations MOM_parameter_doc* SIS_parameter_doc* seaice.stats* ocean.stats* extra.results/
+         cp diag_table extra.results/.
+         cp $scriptName extra.results/runscript.csh
+         #When the ocean uses a mask_table the ocean_static.nc file produced by the model run has holes in coordinates (geolon,geolat)
+         #This causes problems for ferret and python tools for analysis.
+         #Copy a non-masked version of ocean_static.nc to be saved as a history file to be used by the analysis scipts .
+         cp $work/INPUT/ocean_static_no_mask_table.nc $work/
+      ]]></csh>
+      <refineDiag script="$(NB_ROOT)/mom6/tools/analysis/MOM6_refineDiag.csh  $(NB_ROOT)/mdt_xml/awg_include/refineDiag/refineDiag_data_stager_globalAve.csh"/>
+      <!--xi:include href="awg_include/xml_building_blocks/om4_cmip6_postprocess.xml" xpointer="xpointer(//freInclude[@name='OM4_cmip6_postprocess']/postProcess/node())"/>
+      <xi:include href="awg_include/xml_building_blocks/om4_cmip6_postprocess.xml" xpointer="xpointer(//freInclude[@name='OM4_refined_postprocess']/postProcess/node())"/>
+      <xi:include href="awg_include/xml_building_blocks/om4_cmip6_postprocess.xml" xpointer="xpointer(//freInclude[@name='OM4_cmip6_postprocess_1x1']/postProcess/node())"/-->
+      <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/om4_regions_postprocess.xml" xpointer="xpointer(//freInclude[@name='OM4_regions_postprocess']/postProcess/node())"/>
+      <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/om4p25_postprocess.xml" xpointer="xpointer(//freInclude[@name='OM4p25_postprocess']/postProcess/node())"/>
+      <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/om4p25_postprocess.xml" xpointer="xpointer(//freInclude[@name='OM4p25_ice_postprocess']/postProcess/node())"/>
+      <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/om4p25_postprocess.xml" xpointer="xpointer(//freInclude[@name='OM4_refined_postprocess']/postProcess/node())"/>
+      <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/om4p25_postprocess.xml" xpointer="xpointer(//freInclude[@name='OM4_1x1deg_postprocess']/postProcess/node())"/>
+      <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/om4p25_postprocess.xml" xpointer="xpointer(//freInclude[@name='OM4_snap_postprocess']/postProcess/node())"/>
+    </postProcess>
+</experiment>
+
+   <experiment name="OM4_1deg_JRA_Forpy_G23noSW">
+    <description>
+global 1degree ocean_ice experiment
+JRA55do1-5 dynamic inter_annual forcing data
+No additional diurnal cycle imposed
+turn on ice age tracer -areal -maxval of ice age across layers
+use Will Cooke's mom overrides
+use JRA runoff
+    </description>
+
+    <executable file="/gpfs/f5/gfdl_o/scratch/William.Gregory/MOM6-examples/build/ice_ocean_SIS2/MOM6"/>
+
+    <input>
+      <dataFile label="initCond" target="INPUT/" chksum="" size="" timestamp="">
+	<dataSource site="ncrc">/gpfs/f5/gfdl_o/scratch/William.Gregory/initCond_SPEAR/REMAP/OM4_1deg_JRA_SICDA_F02/20180101.tar</dataSource>
+        <dataSource site="gfdl">/gpfs/f5/gfdl_o/scratch/William.Gregory/initCond_SPEAR/misc/C96_LM3_OM4_01_CanadianArchipelago.remapped.v20171217.tar</dataSource>	
+      </dataFile>
+      <namelist name="ensemble_nml">
+        ensemble_size=2
+      </namelist>
+      <namelist name="coupler_nml">
+       months = $months,
+       days   = $days,
+       current_date = 2018,1,1,0,0,0,
+       hours = 0
+       minutes = 0
+       seconds = 0
+       calendar = 'noleap',
+       dt_cpld  = 1800,
+       dt_atmos = 1800,
+       do_atmos = .false.,
+       do_land = .false.,
+       do_ice = .true.,
+       do_ocean = .true.,
+       atmos_npes = 0,
+       ocean_npes = 0,
+       concurrent = .false.
+       use_lag_fluxes=.false.
+       atmos_nthreads = $atm_threads
+       ocean_nthreads = $ocn_threads
+     </namelist>
+     <namelist name="xgrid_nml">
+       make_exchange_reproduce = .true.
+       interp_method = 'second_order'
+     </namelist>
+     <namelist name="icebergs_nml">
+       make_calving_reproduce=.TRUE.
+        really_debug=.FALSE.
+        debug=.FALSE.
+        verbose=.FALSE.
+        verbose_hrs=7200
+        use_operator_splitting=.TRUE.
+        bergy_bit_erosion_fraction=0.0
+        sicn_shift=0.1
+        parallel_reprod=.TRUE.
+        traj_sample_hrs=0
+        add_weight_to_ocean=.false.
+        tidal_drift = 0.005 
+        coastal_drift = 0.001 
+
+     </namelist>
+     <namelist name="fms_nml">
+       clock_grain='ROUTINE'
+       clock_flags='NONE'
+       domains_stack_size = 8000000
+       stack_size =0
+     </namelist>
+     <namelist name="fms_io_nml" >
+       fms_netcdf_restart=.true.
+       threading_read='multi'
+       max_files_r = 800
+       max_files_w = 800
+     </namelist>
+     <namelist name="atmos_model_nml" >
+       layout= 0, 0
+     </namelist>
+     <!--verona-->
+     <namelist name="sat_vapor_pres_nml">
+      construct_table_wrt_liq = .true.,
+      construct_table_wrt_liq_and_ice = .true.,
+     </namelist>
+     <namelist name="diag_manager_nml">
+       max_files = 400
+       flush_nc_files=.false.
+       max_axes = 400,
+       max_num_axis_sets = 400,
+       max_input_fields = 1200
+       max_output_fields = 1800
+       mix_snapshot_average_fields=.false.
+     </namelist>
+     
+     <!--<namelist name="data_override_nml">
+       reproduce_null_char_bug = .true. !this is needed to reproduce old (wrong) answers with FMS2020.04
+     </namelist>-->
+
+     <dataFile label="namelist" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource site="ncrc">$(MOM6_EXAMPLES)/ice_ocean_SIS2/OM_1deg/input.nml</dataSource>
+        <dataSource site="orion">$(MOM6_EXAMPLES)/ice_ocean_SIS2/OM_1deg/input.nml</dataSource>
+        <dataSource site="gfdl">$(NB_ROOT)/mom6/ice_ocean_SIS2/OM_1deg/input.nml</dataSource>
+     </dataFile>
+
+     <!--common setup for JRA forcing dataset and data_table-->
+     <xi:include href="/ncrc/home2/William.Gregory/xml/awg_include/xml_building_blocks/om4_common.xml" xpointer="xpointer(//freInclude[@name='OM4_JRA_always_csh']/input/node())"/>
+     <xi:include href="/ncrc/home2/William.Gregory/xml/awg_include/xml_building_blocks/om4_common.xml" xpointer="xpointer(//freInclude[@name='JRA_data_table']/input/node())"/>
+     <!--append the resolution dependent runoff override-->
+
+     <dataTable order="append">
+#JRA runoff
+"ICE" , "runoff"        , "friver"      , "./INPUT/JRA_friver_360x320.nc", "none" ,  1.0  
+"ICE" , "calving"       , "licalvf"     , "./INPUT/JRA_licalvf_360x320.nc", "none" ,  1.0  
+
+     </dataTable>
+
+     <!--OM4 gridSpec mosaic datasets-->
+    <xi:include xpointer="xpointer(//freInclude[@name='OM4_1deg_grid']/input/node())"/>
+     <!--MOM6 Input datasets-->
+     <xi:include xpointer="xpointer(//freInclude[@name='OM4_1deg_data']/input/node())"/>
+     <!--SIS2 Input datasets-->
+     <xi:include xpointer="xpointer(//freInclude[@name='SIS2_data']/input/node())"/>
+
+     <diagTable>
+$name
+$baseDate
+"ocean_5daily",            5, "days",   1, "days", "time"
+"ocean_daily",             1, "days",   1, "days", "time"
+"ocean_model", "SSU",          "ssu",              "ocean_5daily", "all", "mean", "none",2
+"ocean_model", "SSV",          "ssv",              "ocean_5daily", "all", "mean", "none",2
+"ocean_model", "tos",          "tos",              "ocean_5daily", "all", "mean", "none",2
+"ocean_model", "sos",          "sos",              "ocean_5daily", "all", "mean", "none",2
+"ocean_model", "zos",          "zos",              "ocean_5daily", "all", "mean", "none",2
+"ocean_model", "heat_added",   "heat_added",       "ocean_5daily", "all", "mean", "none",2
+"ocean_model", "vprec",        "vprec",            "ocean_5daily", "all", "mean", "none",2
+"ocean_model", "total_heat_content_vprec", "total_heat_content_vprec", "ocean_daily", "all", "mean", "none",2
+
+"ice_daily",              1, "days", 1, "days", "time"
+"ice_model", "dCN",        "dCN",        "ice_daily", "all", "mean", "none", 2
+"ice_model", "siu",        "siu",        "ice_daily", "all", "mean", "none", 2
+"ice_model", "siv",        "siv",        "ice_daily", "all", "mean", "none", 2
+"ice_model", "siconc",     "siconc",     "ice_daily", "all", "mean", "none", 2
+"ice_model", "BSNK",       "BSNK",       "ice_daily", "all", .true., "none", 2
+"ice_model", "CN",         "CN",         "ice_daily", "all", .true., "none", 2
+"ice_model", "GEOLAT",     "GEOLAT",     "ice_daily", "all", .false., "none", 2
+"ice_model", "GEOLON",     "GEOLON",     "ice_daily", "all", .false., "none", 2
+"ice_model", "HI",         "HI",         "ice_daily", "all", .true., "none", 2
+"ice_model", "HS",         "HS",         "ice_daily", "all", .true., "none", 2
+"ice_model", "LH",         "LH",         "ice_daily", "all", .true., "none", 2
+"ice_model", "LSNK",       "LSNK",       "ice_daily", "all", .true., "none", 2
+"ice_model", "LSRC",       "LSRC",       "ice_daily", "all", .true., "none", 2
+"ice_model", "LW",         "LW",         "ice_daily", "all", .true., "none", 2
+"ice_model", "MI",         "MI",         "ice_daily", "all", .true., "none", 2
+"ice_model", "SSS",        "SSS",        "ice_daily", "all", .true., "none", 2
+"ice_model", "SST",        "SST",        "ice_daily", "all", .true., "none", 2
+"ice_model", "SW",         "SW",         "ice_daily", "all", .true., "none", 2
+"ice_model", "TS",         "TS",         "ice_daily", "all", .true., "none", 2
+"ice_model", "UI",         "UI",         "ice_daily", "all", .true., "none", 2
+"ice_model", "VI",         "VI",         "ice_daily", "all", .true., "none", 2
+"ice_model", "XPRT",       "XPRT",       "ice_daily", "all", .true., "none", 2
+     </diagTable>
+
+     <!--field_tables-->
+     <dataFile label="fieldTable" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource site="ncrc">$(MOM6_EXAMPLES)/ice_ocean_SIS2/OM_1deg/field_table</dataSource>
+        <dataSource site="orion">$(MOM6_EXAMPLES)/ice_ocean_SIS2/OM_1deg/field_table</dataSource>
+        <dataSource site="gfdl">$(NB_ROOT)/mom6/ice_ocean_SIS2/OM_1deg/field_table</dataSource>
+     </dataFile>
+
+
+     <!--MOM_overrides-->
+     <csh>
+        <![CDATA[
+if ( $currentSeg == 1 ) then
+   #Take current date from coupler_nml
+   if(-e $work/INPUT/coupler.res ) \rm -rf $work/INPUT/coupler.res
+endif
+
+cat > $work/INPUT/MOM_override << MOM_OVERRIDE_EOF
+
+#override TOPO_EDITS_FILE = "topo_edits_011818.nc"
+#override CHANNEL_LIST_FILE = MOM_channels_SPEAR
+#override SALT_RESTORE_FILE = "salt_restore_PHC2.1degOM4.v20180716.nc"
+#override SALT_RESTORE_VARIABLE = "SALT"   ! default = "salt"
+#override FLUXCONST_TEMP = 4.0 
+#override RESTORE_TEMPERATURE = TRUE
+#override SPEAR_ECDA_SST_RESTORE_TFREEZE = TRUE
+#override SST_RESTORE_FILE  = "temp_restore.nc" 
+#override SST_RESTORE_VARIABLE = "temp"
+
+#override KV_ML_INVZ2 = 1.0E-4
+#override DEFAULT_ANSWER_DATE=20181231
+#override INTERNAL_WAVE_SPEED_BETTER_EST = False
+
+#override REMAP_UV_USING_OLD_ALG = True
+#override Z_INIT_REMAP_OLD_ALG = True
+#override FIX_USTAR_GUSTLESS_BUG =False
+#override GRID_ROTATION_ANGLE_BUGS = True
+#override KAPPA_SHEAR_ALL_LAYER_TKE_BUG = True
+#override KAPPA_SHEAR_ITER_BUG = True
+#override USE_GM_WORK_BUG = True
+#override USE_MLD_ITERATION = False
+#override USE_TRIPOLAR_GEOLONB_BUG =True
+#override GUST_CONST = 0.02
+#override MEKE_ALPHA_EADY = 0.05
+#override MEKE_ALPHA_RHINES = 0.05
+#override MIN_SALINITY = 0.01
+
+#override KH_BG_2D_BUG=True
+#override USE_DIABATIC_TIME_BUG=True
+#override USE_INACCURATE_PGF_RHO_ANOM=True
+#override NDIFF_USE_UNMASKED_TRANSPORT_BUG=True
+#override RESTART_CHECKSUMS_REQUIRED = False
+
+MOM_OVERRIDE_EOF
+
+# SIS_override_X is created offline and copied to the inputDir
+cp /gpfs/f5/gfdl_o/scratch/William.Gregory/SIS_overrides_Forpy/SIS_override_* $work/INPUT/
+ 
+     ]]></csh>
+
+   </input>
+
+    <runtime>
+      <production simTime="$(PROD_SIMTIME)" units="years">
+	  <segment simTime="12" units="months"/>    
+          <resources jobWallclock="16:00:00"  segRuntime="1:00:00">
+             <ocn ranks="72" layout = "12,6"   io_layout = "1,1" mask_table="MOM_mask_table" threads="1"/>
+		 <ice              layout = "12,6"   io_layout = "1,1" mask_table="MOM_mask_table"/>
+          </resources>
+      </production>
+      <regression name="basic">
+        <run months="1" > <xi:include xpointer="xpointer(//freInclude[@name='resourceparams_O1756']/node())"/> </run>
+      </regression>
+      <regression name="rts">
+        <run days="15 16" > <xi:include xpointer="xpointer(//freInclude[@name='resourceparams_O1756']/node())"/> </run>
+         <!--the following should reproduce eachother but not the basic because basic uses mask_table-->
+         <run days="2" > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O864x2']/node())"/> </run>
+         <run days="2" > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O1440']/node())"/> </run>
+         <run days="2" > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O1296']/node())"/> </run>
+      </regression>
+      <regression name="debug2">
+        <run months="1" > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O2304']/node())"/> </run>
+      </regression>
+      <regression name="debug">
+        <run days="2"  > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O864']/node())"/> </run>
+      </regression>
+      <regression name="big">
+	  <run days="1" > 
+	     <resources jobWallclock="00:30:00">
+               <ice                            layout = "90,144"  io_layout = "1,4" mask_table="mask_table.3785.90x144.9175"/>
+               <ocn ranks="9175" threads="1"   layout = "90,144"  io_layout = "1,4" mask_table="mask_table.3785.90x144.9175"/>
+	     </resources>
+          </run>   
+      </regression>
+      <regression name="timing">
+        <run months="1" > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O1756']/node())"/> </run>
+        <run months="1" > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O2997']/node())"/> </run>
+        <run months="1" > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O3782']/node())"/> </run>
+        <run months="1" > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O4671']/node())"/> </run>
+        <run months="1" > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O6430']/node())"/> </run>
+        <run months="1" > <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O9175']/node())"/> </run>
+      </regression>
+<!--
+      <regression name="timings">
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O1756']/node())"/> </run>
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O910']/node())"/> </run>
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O1125']/node())"/> </run>
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O1970']/node())"/> </run>
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O2432']/node())"/> </run>
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O2997']/node())"/> </run>
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O3551']/node())"/> </run>
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O3782']/node())"/> </run>
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O4671']/node())"/> </run>
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O6430']/node())"/> </run>
+        <run months="1" > <xi:include href="awg_include/xml_building_blocks/layouts.xml" xpointer="xpointer(//freInclude[@name='resourceparams_O9175']/node())"/> </run>
+      </regression>
+-->
+      <reference restart="$(REFERENCE)/archive/1x0m2d_864x1o/restart/19580103.tar"/>
+      <reference restart="$(REFERENCE)/archive/1x1m0d_1756x1o/restart/19580201.tar"/>
+    </runtime>
+
+    <postProcess>
+      <csh><![CDATA[
+         cd $work
+         #Make a directory to trick FRE to pick up and archive in ascii
+         mkdir extra.results
+         mv *velocity_truncations MOM_parameter_doc* SIS_parameter_doc* seaice.stats* ocean.stats* extra.results/
+         cp diag_table extra.results/.
+         cp $scriptName extra.results/runscript.csh
+         #When the ocean uses a mask_table the ocean_static.nc file produced by the model run has holes in coordinates (geolon,geolat)
+         #This causes problems for ferret and python tools for analysis.
+         #Copy a non-masked version of ocean_static.nc to be saved as a history file to be used by the analysis scipts .
+         cp $work/INPUT/ocean_static_no_mask_table.nc $work/
+      ]]></csh>
+      <refineDiag script="$(NB_ROOT)/mom6/tools/analysis/MOM6_refineDiag.csh  $(NB_ROOT)/mdt_xml/awg_include/refineDiag/refineDiag_data_stager_globalAve.csh"/>
+      <!--xi:include href="awg_include/xml_building_blocks/om4_cmip6_postprocess.xml" xpointer="xpointer(//freInclude[@name='OM4_cmip6_postprocess']/postProcess/node())"/>
+      <xi:include href="awg_include/xml_building_blocks/om4_cmip6_postprocess.xml" xpointer="xpointer(//freInclude[@name='OM4_refined_postprocess']/postProcess/node())"/>
+      <xi:include href="awg_include/xml_building_blocks/om4_cmip6_postprocess.xml" xpointer="xpointer(//freInclude[@name='OM4_cmip6_postprocess_1x1']/postProcess/node())"/-->
+      <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/om4_regions_postprocess.xml" xpointer="xpointer(//freInclude[@name='OM4_regions_postprocess']/postProcess/node())"/>
+      <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/om4p25_postprocess.xml" xpointer="xpointer(//freInclude[@name='OM4p25_postprocess']/postProcess/node())"/>
+      <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/om4p25_postprocess.xml" xpointer="xpointer(//freInclude[@name='OM4p25_ice_postprocess']/postProcess/node())"/>
+      <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/om4p25_postprocess.xml" xpointer="xpointer(//freInclude[@name='OM4_refined_postprocess']/postProcess/node())"/>
+      <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/om4p25_postprocess.xml" xpointer="xpointer(//freInclude[@name='OM4_1x1deg_postprocess']/postProcess/node())"/>
+      <xi:include href="/ncrc/home1/Alistair.Adcroft/xml/ogrp.xml.2023.06.30/awg_include/xml_building_blocks/om4p25_postprocess.xml" xpointer="xpointer(//freInclude[@name='OM4_snap_postprocess']/postProcess/node())"/>
+    </postProcess>
+</experiment>
+
+   <freInclude name="OM4_1deg_grid">
+    <input>
+      <dataFile label="gridSpec" target="INPUT/" chksum="" size="" timestamp="">
+       <dataSource site="ncrc">/gpfs/f5/gfdl_o/scratch/William.Gregory/inputs/mosaic.tar</dataSource>
+       <dataSource site="gfdl">/archive/William.Cooke/gold/datasets/SPEAR/C96.OM360x320.20171213/mosaic.tar</dataSource> 
+      </dataFile>
+    </input>
+   </freInclude>
+
+   <freInclude name="OM4_1deg_data">
+    <input>
+      <dataFile label="input" target="INPUT/MOM_input" chksum="" size="" timestamp="">
+       <dataSource platform="$(platform)">/gpfs/f5/gfdl_o/scratch/William.Gregory/inputs/MOM_input_P39_init</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+       <dataSource platform="$(platform)">/gpfs/f5/gfdl_o/scratch/William.Gregory/inputs/salt_restore_PHC2.1degOM4.v20180716.nc</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+       <dataSource platform="$(platform)">/gpfs/f5/gfdl_o/scratch/William.Gregory/inputs/MOM_saltrestore</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+       <dataSource platform="$(platform)">/gpfs/f5/gfdl_o/world-shared/datasets/OM_1deg/INPUT/tidal_amplitude.nc</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/MOM_channels_SPEAR" chksum="" size="" timestamp="">
+       <dataSource platform="$(platform)">/gpfs/f5/gfdl_o/world-shared/datasets/OM_1deg/INPUT/MOM_channels_SPEAR</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+       <dataSource platform="$(platform)">/gpfs/f5/gfdl_o/world-shared/datasets/OM_1deg/INPUT/seawifs_1998-2006_smoothed_2X.nc</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+       <dataSource platform="$(platform)">$(MOM6_EXAMPLES)/ice_ocean_SIS2/OM4_025.JRA/INPUT/hycom1_75_800m.nc</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+       <dataSource platform="$(platform)">$(MOM6_EXAMPLES)/ice_ocean_SIS2/OM4_025.JRA/INPUT/All_edits.nc</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+       <dataSource platform="$(platform)">$(MOM6_EXAMPLES)/ice_ocean_SIS2/OM4_025.JRA/INPUT/woa13_decav_ptemp_monthly_fulldepth_01.nc</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+       <dataSource platform="$(platform)">$(MOM6_EXAMPLES)/ice_ocean_SIS2/OM4_025.JRA/INPUT/woa13_decav_s_monthly_fulldepth_01.nc</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+       <dataSource platform="$(platform)">/gpfs/f5/gfdl_o/scratch/William.Gregory/JRA_runoff_1deg/geothermal_davies2013_v1.nc</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+       <dataSource platform="$(platform)">/gpfs/f5/gfdl_o/world-shared/datasets/OM_1deg/INPUT/layer_coord.nc</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+       <dataSource platform="$(platform)">$(MOM6_EXAMPLES)/ice_ocean_SIS2/OM4_025/INPUT/diag_rho2.nc</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+       <dataSource platform="$(platform)">/gpfs/f5/gfdl_o/world-shared/datasets/OM_1deg/INPUT/vgrid_75_2m.nc</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/KH_background_2d.nc" chksum="" size="" timestamp="">
+       <dataSource platform="$(platform)">/gpfs/f5/gfdl_o/scratch/William.Gregory/inputs/Kh_background_5e3_50to90ns.nc</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/">
+         <dataSource site="ncrc">/gpfs/f5/gfdl_o/world-shared/datasets/OM_1deg/INPUT/topo_edits_011818.nc</dataSource>
+         <dataSource site="gfdl">/archive/William.Cooke/pdata/gfdl_G/SPEAR_MOM6/topo/topo_edits_011818.nc</dataSource>
+      </dataFile>
+
+
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+          <dataSource site="ncrc">/gpfs/f5/gfdl_o/scratch/William.Gregory/inputs/diag_vgrid.nc</dataSource>
+          <dataSource site="gfdl">/archive/William.Cooke/gold/datasets/FLOR2/diag_vgrid.nc</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+       <dataSource platform="$(platform)">/gpfs/f5/gfdl_o/scratch/William.Gregory/inputs/WOA05_pottemp_salt.nc </dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource site="ncrc">/gpfs/f5/gfdl_o/scratch/William.Gregory/inputs/edits_012016.nc</dataSource>
+      </dataFile>
+      <dataFile label="input" target="INPUT/" chksum="" size="" timestamp="">
+        <dataSource site="ncrc">/gpfs/f5/gfdl_o/scratch/William.Gregory/inputs/edits_013016a.nc</dataSource>
+      </dataFile>
+
+     <namelist name="MOM_input_nml" >
+         output_directory = './',
+         input_filename = '$restart_flag'
+         restart_input_dir = 'INPUT/',
+         restart_output_dir = 'RESTART/',
+         parameter_filename = 'INPUT/MOM_input','INPUT/MOM_layout','INPUT/MOM_saltrestore','INPUT/MOM_override'
+     </namelist>
+
+      <dataFile label="input" target="INPUT/ocean_static_no_mask_table.nc" chksum="" size="" timestamp="">
+          <dataSource site="ncrc">/gpfs/f5/gfdl_o/scratch/William.Gregory/inputs/ocean_static.nc</dataSource>
+      </dataFile>
+     </input>
+   </freInclude>
+
+   <freInclude name="SIS2_data">
+    <input>
+     <dataFile label="input" target="INPUT/SIS_input" chksum="" size="" timestamp="">
+         <dataSource platform="$(platform)">/gpfs/f5/gfdl_o/scratch/William.Gregory/inputs/SIS_input_C39_init</dataSource>
+     </dataFile>
+     <namelist name="SIS_input_nml" >
+         output_directory = './',
+         input_filename = '$restart_flag'
+         restart_input_dir = 'INPUT/',
+         restart_output_dir = 'RESTART/',
+         parameter_filename = 'INPUT/SIS_input','INPUT/SIS_layout','INPUT/SIS_override_%E'
+     </namelist>
+     </input>
+   </freInclude>
+</experimentSuite>
