@@ -77,11 +77,11 @@ def DAML(XA,XB,dt_slow):
     'seed':711,
     }
 
-    NetworkA_weights = '/lustre/f2/dev/William.Gregory/CNNForpy/NetworkA_weights_1982-2017_notend_P2.pt'
-    NetworkB_weights = '/lustre/f2/dev/William.Gregory/CNNForpy/NetworkB_weights_1982-2017_notend_P2.pt'
+    NetworkA_weights = '/gpfs/f5/gfdl_o/scratch/William.Gregory/CNNForpy/NetworkA_weights_1982-2017_notend_P2.pt'
+    NetworkB_weights = '/gpfs/f5/gfdl_o/scratch/William.Gregory/CNNForpy/NetworkB_weights_1982-2017_notend_P2.pt'
 
-    NetworkA_stats = np.load('/lustre/f2/dev/William.Gregory/CNNForpy/NetworkA_statistics_1982-2017_allsamples_notend.npz')
-    NetworkB_stats = np.load('/lustre/f2/dev/William.Gregory/CNNForpy/NetworkB_statistics_1982-2017_allsamples_notend.npz')
+    NetworkA_stats = np.load('/gpfs/f5/gfdl_o/scratch/William.Gregory/CNNForpy/NetworkA_statistics_1982-2017_allsamples_notend.npz')
+    NetworkB_stats = np.load('/gpfs/f5/gfdl_o/scratch/William.Gregory/CNNForpy/NetworkB_statistics_1982-2017_allsamples_notend.npz')
 
     sec5day = 432000
     scale = sec5day/dt_slow
