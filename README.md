@@ -8,7 +8,7 @@ The `offline_learning` folder contains code and data relating to the article [Gr
 
 ### Online ice-ocean
 
-The `online_iceocean' folder contains example scripts of how to implement the trained CNN into SPEAR ice-ocean simulations, by updating the sea ice restart files, as a way to correct short-forecasts. This methodology is outlined in the article [Gregory et al., 2023b](https://arxiv.org/pdf/2310.02488.pdf).
+The `online_iceocean' folder contains example scripts of how to implement the trained CNN into SPEAR ice-ocean simulations, by updating the sea ice restart files, as a way to correct short-forecasts. This methodology is outlined in the article [Gregory et al., 2024]([https://arxiv.org/pdf/2310.02488.pdf](https://doi.org/10.1029/2023GL106776)).
 
 ### Online forPy
 
