@@ -157,7 +157,7 @@ posterior = np.zeros((nmembers,1,nCat+1,xT,yT))
 increments = np.zeros((nmembers,1,nCat,xT,yT))
 for ix in range(0,xT,xdiv):
     for jx in range(0,yT,ydiv):
-        posterior[:,0,1:,ix:ix+xdiv,jx:jx+ydiv],increment[:,0,:,ix:ix+xdiv,jx:jx+ydiv] = Kfilter(fi[:,:,ix:ix+xdiv,jx:jx+ydiv],obs[ix:ix+xdiv,jx:jx+ydiv],\
+        posterior[:,0,1:,ix:ix+xdiv,jx:jx+ydiv],increments[:,0,:,ix:ix+xdiv,jx:jx+ydiv] = Kfilter(fi[:,:,ix:ix+xdiv,jx:jx+ydiv],obs[ix:ix+xdiv,jx:jx+ydiv],\
                                                                                             lon[ix:ix+xdiv,jx:jx+ydiv],lat[ix:ix+xdiv,jx:jx+ydiv],\
                                                                                             loc_rad=localization_radius,obs_error=observation_error)
 
