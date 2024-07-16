@@ -195,64 +195,60 @@ if COMM.rank == 0: #tell the master node to compile the results into their own r
             ix += 1
 
     ds = xr.Dataset(data_vars=dict(part_size=(['member','time', 'ct', 'yT', 'xT'], increments[:,np.newaxis])), coords=dict(yT=f['yT'], xT=f['xT']))
-    ds.dSICN.attrs['long_name'] = 'category_sea_ice_concentration_increments'
-    ds.dSICN.attrs['units'] = 'area_fraction'
+    ds.part_size.attrs['long_name'] = 'category_sea_ice_concentration_increments'
+    ds.part_size.attrs['units'] = 'area_fraction'
     ds['time'] = [date]
     ds.to_netcdf(savepath+date+'.EnKF_increment.nc')
+    OW = 1 - np.nansum(posterior,1)
+    posterior = np.hstack((OW[:,np.newaxis],posterior))
 
-"""
-for member,file in enumerate(ice_restarts): #compute increment and add to each ensemble member    
+    for member,file in enumerate(ice_restarts):
+        fr = xr.open_dataset(file)
+        prior = fr.part_size.to_numpy()
+        post = posterior[member][None]
+        post[post<0] = 0
+        post[post>1] = 1
+
+        cond1 = np.where((prior[:,1:]<=0) & (post[:,1:]>0)) #where original state was ice-free, but EnKF has added ice
+        cond2 = np.where((prior[:,1:]>0) & (post[:,1:]<=0)) #where original state contained ice, but EnKF has made ice-free
     
-    ### ADD TO RESTART FILE ###                                                                                                                                                                                                    
-    fr = xr.open_dataset(file)
-    prior = fr.part_size.to_numpy()
-    post = np.zeros((1,6,320,360))
-    post[0,1:] = pp(prior[0,1:] + dSICN[member,0])
-    post[0,0] = 1 - np.nansum(post[0,1:],0)
-    post[post<0] = 0
-    post[post>1] = 1
+        h_ice = fr.h_ice.to_numpy()
+        h_ice[cond1] = i_thick[cond1]
+        h_ice[cond2] = 0
 
-    cond1 = np.where((prior[:,1:]<=0) & (post[:,1:]>0)) #where original state was ice-free, but CNN has added ice
-    cond2 = np.where((prior[:,1:]>0) & (post[:,1:]<=0)) #where original state contained ice, but CNN has made ice-free
-    
-    h_ice = fr.h_ice.to_numpy()
-    h_ice[cond1] = i_thick[cond1]
-    h_ice[cond2] = 0
+        h_snow = fr.h_snow.to_numpy()
+        h_snow[cond1] = 0
+        h_snow[cond2] = 0
 
-    h_snow = fr.h_snow.to_numpy()
-    h_snow[cond1] = 0
-    h_snow[cond2] = 0
+        enth_ice = fr.enth_ice.to_numpy()
+        for layer in range(4):
+            enth_ice[:,layer][cond1] = qi_new
+            enth_ice[:,layer][cond2] = 0
 
-    enth_ice = fr.enth_ice.to_numpy()
-    for layer in range(4):
-        enth_ice[:,layer][cond1] = qi_new
-        enth_ice[:,layer][cond2] = 0
+        enth_snow = fr.enth_snow.to_numpy()
+        enth_snow[0][cond1] = 0
+        enth_snow[0][cond2] = 0
 
-    enth_snow = fr.enth_snow.to_numpy()
-    enth_snow[0][cond1] = 0
-    enth_snow[0][cond2] = 0
+        T_skin = fr.T_skin.to_numpy()
+        T_skin[cond1] = Ti
+        T_skin[cond2] = -0.054*fo[member,cond2]
 
-    T_skin = fr.T_skin.to_numpy()
-    T_skin[cond1] = Ti
-    T_skin[cond2] = -1.8
+        sal_ice = fr.sal_ice.to_numpy()
+        for layer in range(4):
+            sal_ice[:,layer][cond1] = Si_new
+            sal_ice[:,layer][cond2] = 0
 
-    sal_ice = fr.sal_ice.to_numpy()
-    for layer in range(4):
-        sal_ice[:,layer][cond1] = Si_new
-        sal_ice[:,layer][cond2] = 0
+        h_pond = fr.h_pond.to_numpy()
+        h_pond[cond1] = 0
+        h_pond[cond2] = 0
 
-    h_pond = fr.h_pond.to_numpy()
-    h_pond[cond1] = 0
-    h_pond[cond2] = 0
+        fr.part_size.loc[:] = post
+        fr.h_ice.loc[:] = h_ice
+        fr.h_snow.loc[:] = h_snow
+        fr.h_pond.loc[:] = h_pond
+        fr.enth_ice.loc[:] = enth_ice
+        fr.enth_snow.loc[:] = enth_snow
+        fr.T_skin.loc[:] = T_skin
+        fr.sal_ice.loc[:] = sal_ice
 
-    fr.part_size.loc[:] = post
-    fr.h_ice.loc[:] = h_ice
-    fr.h_snow.loc[:] = h_snow
-    fr.h_pond.loc[:] = h_pond
-    fr.enth_ice.loc[:] = enth_ice
-    fr.enth_snow.loc[:] = enth_snow
-    fr.T_skin.loc[:] = T_skin
-    fr.sal_ice.loc[:] = sal_ice
-
-    fr.to_netcdf(file,mode='a')
-"""
+        fr.to_netcdf(file,mode='a')
