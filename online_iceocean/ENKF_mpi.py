@@ -175,7 +175,7 @@ scattered_jobs = COMM.scatter(splitted_jobs, root=0) #scatter the tasks to each 
 
 results = []
 for ix in scattered_jobs: #each computer node will execute this loop and send its segement of data to the ENKF
-    outputs = Kfilter(prior[:,:,xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],\
+    outputs = Kfilter(fi[:,:,xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],\
                           obs[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],\
                           lon[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],\
                           lat[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],loc_rad=localization_radius,obs_error=observation_error)
