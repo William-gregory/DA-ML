@@ -151,10 +151,10 @@ if os.path_exists(obs_file):
     lat = grid.GEOLAT.to_numpy()
     ice_restarts = sorted(glob.glob('ice_model.res*')) #prior model states (RESTART files)
     ocn_restart = sorted(glob.glob('MOM.res.*')) #get ocean states for salinity-dependent freezing point
-    fi = xr.open_mfdataset(ice_restarts,concat_dim='ens',combine='nested',decode_times=False).part_size.to_numpy()[:,0,1:]
-    fo = xr.open_mfdataset(ocn_restarts,concat_dim='ens',combine='nested',decode_times=False).s_surf.to_numpy()
+    fi = xr.open_mfdataset(ice_restarts,concat_dim='ens',combine='nested',decode_times=False)
+    prior = fi.part_size.to_numpy()[:,0,1:]
     obs = xr.open_dataset(obs_file).sic.to_numpy()
-    nmembers,nCat,xT,yT = fi.shape
+    nmembers,nCat,xT,yT = prior.shape
     
     ### PARAMETERS ###
     localization_radius = 0.03 #radians
@@ -180,12 +180,12 @@ if os.path_exists(obs_file):
     lon_SH = lon[:,SH]
     lat_SH = lat[:,SH]
     for ix in scattered_jobs:
-        outputs_NH = Kfilter(fi[:,:,:,NH],obs[:,NH],lon_NH,lat_NH,\
+        outputs_NH = Kfilter(prior[:,:,:,NH],obs[:,NH],lon_NH,lat_NH,\
                              lon_NH[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],\
                              lat_NH[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],loc_rad=localization_radius)
         results_NH.append(outputs_NH)
     
-        outputs_SH = Kfilter(fi[:,:,:,SH],obs[:,SH],lon_SH,lat_SH,\
+        outputs_SH = Kfilter(prior[:,:,:,SH],obs[:,SH],lon_SH,lat_SH,\
                              lon_SH[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],\
                              lat_SH[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],loc_rad=localization_radius)
         results_SH.append(outputs_SH)
@@ -211,7 +211,7 @@ if os.path_exists(obs_file):
         posterior = np.concatenate((posterior[0],posterior[1]),axis=4)
         increments = np.concatenate((increments[0],increments[1]),axis=4)
         
-        ds = xr.Dataset(data_vars=dict(part_size=(['members','time', 'ct', 'yT', 'xT'], increments)), coords=dict(yT=f['yT'], xT=f['xT']))
+        ds = xr.Dataset(data_vars=dict(part_size=(['members','time', 'ct', 'yT', 'xT'], increments)), coords=dict(yT=fi['yT'], xT=fi['xT']))
         ds.part_size.attrs['long_name'] = 'category_sea_ice_concentration_increments'
         ds.part_size.attrs['units'] = 'area_fraction'
         ds['time'] = [date]
@@ -232,6 +232,7 @@ if os.path_exists(obs_file):
         i_thick = np.tile((hmid*rho_ice)[None,:,None,None],(1,1,xT,yT))
         for member,file in enumerate(ice_restarts):
             fr = xr.open_dataset(file)
+            SSS = xr.open_dataset(ocn_restarts[member]).s_surf.to_numpy()
             prior = fr.part_size.to_numpy()
             post = posterior[member]
     
@@ -257,7 +258,7 @@ if os.path_exists(obs_file):
     
             T_skin = fr.T_skin.to_numpy()
             T_skin[cond1] = Ti
-            T_skin[cond2] = -0.054*fo[member,cond2]
+            T_skin[cond2] = -0.054*SSS[cond2]
     
             sal_ice = fr.sal_ice.to_numpy()
             for layer in range(4):
