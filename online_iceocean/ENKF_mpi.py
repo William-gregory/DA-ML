@@ -233,11 +233,11 @@ if os.path_exists(obs_file):
         for member,file in enumerate(ice_restarts):
             fr = xr.open_dataset(file)
             SSS = xr.open_dataset(ocn_restarts[member]).s_surf.to_numpy()
-            prior = fr.part_size.to_numpy()
-            post = posterior[member]
+            prior_m = fr.part_size.to_numpy()
+            post_m = posterior[member]
     
-            cond1 = np.where((prior[:,1:]<=0) & (post[:,1:]>0)) #where original state was ice-free, but EnKF has added ice
-            cond2 = np.where((prior[:,1:]>0) & (post[:,1:]<=0)) #where original state contained ice, but EnKF has made ice-free
+            cond1 = np.where((prior_m[:,1:]<=0) & (post_m[:,1:]>0)) #where original state was ice-free, but EnKF has added ice
+            cond2 = np.where((prior_m[:,1:]>0) & (post_m[:,1:]<=0)) #where original state contained ice, but EnKF has made ice-free
         
             h_ice = fr.h_ice.to_numpy()
             h_ice[cond1] = i_thick[cond1]
@@ -269,7 +269,7 @@ if os.path_exists(obs_file):
             h_pond[cond1] = 0
             h_pond[cond2] = 0
     
-            fr.part_size.loc[:] = post
+            fr.part_size.loc[:] = post_m
             fr.h_ice.loc[:] = h_ice
             fr.h_snow.loc[:] = h_snow
             fr.h_pond.loc[:] = h_pond
