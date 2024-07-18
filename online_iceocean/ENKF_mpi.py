@@ -164,7 +164,7 @@ if os.path_exists(obs_file):
     xindices = xindices.ravel()
     yindices = yindices.ravel()
     
-    selected_variables = range(len(yindices)) #divide globe into domains of size xdiv x ydiv
+    selected_variables = range(len(yindices)) #divide globe into tiles of size xdiv x ydiv
     if COMM.rank == 0:
         splitted_jobs = split(selected_variables, COMM.size)
     else:
