@@ -5,6 +5,7 @@ import numpy as np
 import xarray as xr
 from mpi4py import MPI
 from datetime import datetime,timedelta
+from sklearn.metrics.pairwise import haversine_distances
 
 COMM = MPI.COMM_WORLD
 
@@ -67,26 +68,36 @@ def liquidus_temperature_mush(Sbr):
 
     return ((Sbr / (M1_liq + N1_liq * Sbr)) + O1_liq) * t_high + ((Sbr / (M2_liq + N2_liq * Sbr)) + O2_liq) * (1.0 - t_high)
 
-def haversine(coords,localization_radius=0.03):
+def preprocess(prior,obs,lon1,lat1,lon2,lat2,localization_radius):
     """
-    compute the localization matrix based on Haversine distance.
-    coords: Nx2 array of longitude and latitude points
-
-    returns: NxN binary matrix with zeros outside of localization radius
+    pad the domain of the prior state variables and observations
+    to appropriately handle the chosen localization distance.
+    Then compute the localization matrix for this padded domain.
+    
+    Return the padded state variables, observations and
+    localization matrix, and the indices of the original (unpadded) domain 
     """
-    lon = np.deg2rad(coords[:, 0])
-    lat = np.deg2rad(coords[:, 1])
-    lon1, lon2 = np.meshgrid(lon, lon)
-    lat1, lat2 = np.meshgrid(lat, lat)
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
+    E,C,dX,dY = prior.shape
+    prior = prior.reshape(E,C,dX*dY)
+    obs = obs.ravel()
+    lon1 = lon1.ravel()
+    lat1 = lat1.ravel()
+    lon2 = lon2.ravel()
+    lat2 = lat2.ravel()
+    prior[np.isnan(prior)] = 0
+    obs[np.isnan(obs)] = 0
     
-    a = np.sin(dlat / 2.0)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2.0)**2
-    c = 2 * np.arcsin(np.sqrt(a))
-    c[c<=localization_radius] = 1
-    c[c!=1] = 0
+    X = np.deg2rad(np.array([lat1,lon1]).T)
+    Y = np.deg2rad(np.array([lat2,lon2]).T)
+    c = haversine_distances(X,Y)                                                                                                                                                                                                                  
+    pad_halo = np.unique(np.where(c<=localization_radius)[0])
+    Z = np.deg2rad(np.array([lat1[pad_halo],lon1[pad_halo]]).T)
+    trim_halo = np.array([np.squeeze(np.where((Z == y).all(axis=1))) for y in Y])
+    W = haversine_distances(Z,Z)
+    W[W<=localization_radius] = 1
+    W[W!=1] = 0
     
-    return c
+    return prior[:,:,pad_halo], obs[pad_halo], W, trim_halo
 
 def split(container, count):
     """
@@ -95,36 +106,31 @@ def split(container, count):
     """
     return [container[_i::count] for _i in range(count)]
 
-def Kfilter(prior,obs,lon,lat,loc_rad,obs_error):
+def Kfilter(prior,obs,lon,lat,lon_sub,lat_sub,loc_rad=1,obs_error=0.1):
     """
     ensemble Kalman filter (still need to do 'adjustment' part)
-    prior state variables of size: E, C, dX, dY
+    prior state variables of size: E, C, N
     E is the number of ensemble members
     C is the number of model states (categories)
-    dX is the number of x grid points
-    dY is the number of y grid points
+    N is the number of grid points
 
     returns: posterior state variables and increments
     """
-    E,C,dX,dY = prior.shape
-    prior = prior.reshape(E,C,dX*dY)
-    obs = obs.ravel()
-    obs[np.isnan(obs)] = 0
-    prior[np.isnan(prior)] = 0
-    priorH = np.nansum(prior,1) #prior passed through obs operator
+    prior, obs, W, trim_halo = preprocess(prior,obs,lon,lat,lon_sub,lat_sub,localization_radius=loc_rad)
+    priorH = np.nansum(prior,1)
+    E,C,N = prior.shape
+    dX,dY = lon_sub.shape
+
     if ((priorH==0).all() & (obs==0).all()):
         tmp = np.zeros((E,C,dX,dY))
         return tmp,tmp
     else:
-        coords = np.array([lat.ravel(),lon.ravel()]).T
-        W = haversine(coords,loc_rad)
-
         Bm = np.einsum('ijk,il->jkl', prior-np.nanmean(prior,0), priorH-np.nanmean(priorH,0)) / (E - 1)
-        Bo = np.cov(priorH.T) + np.eye(len(W))*obs_error
+        Bo = np.cov(priorH.T) + np.eye(N)*obs_error
         K = W * (Bm @ np.linalg.inv(Bo))
-        posterior = np.array([prior[x] + (K @ (obs - priorH[x])) for x in range(E)])
+        posterior = np.array([prior[x] + (K @ (obs - priorH[x])) for x in range(E)])[:,:,trim_halo]
 
-        return pp(posterior.reshape(E,C,dX,dY)), (posterior-prior).reshape(E,C,dX,dY)
+        return pp(posterior.reshape(E,C,dX,dY)), (posterior-prior[:,:,trim_halo]).reshape(E,C,dX,dY)
 
 ### PATHS ###
 experiment = os.getcwd().split('/')[-2].split('.')[0]
@@ -160,40 +166,59 @@ qi_new = enthalpy_ice(Ti, Si_new)
 hlim = [1.0e-10, 0.1, 0.3, 0.7, 1.1, 1.5]
 hmid = np.array([0.5*(hlim[n]+hlim[n+1]) for n in range(nCat)])
 i_thick = np.tile((hmid*rho_ice)[None,:,None,None],(1,1,xT,yT))
-xdiv = xT//10
-ydiv = yT//10
-xindices,yindices = np.meshgrid(np.arange(0,xT,xdiv),np.arange(0,yT,ydiv))
+xdiv = xT//20
+ydiv = yT//20
+xindices,yindices = np.meshgrid(np.arange(0,xT,xdiv),np.arange(0,yT//2,ydiv))
 xindices = xindices.ravel()
 yindices = yindices.ravel()
 
-selected_variables = range(len(yindices)) #divide globe into domains of size 32x36
+selected_variables = range(len(yindices)) #divide globe into domains of size xdiv x ydiv
 if COMM.rank == 0:
     splitted_jobs = split(selected_variables, COMM.size)
 else:
     splitted_jobs = None
 scattered_jobs = COMM.scatter(splitted_jobs, root=0) #scatter the tasks to each of the computer nodes.
 
-results = []
-for ix in scattered_jobs: #each computer node will execute this loop and send its segement of data to the ENKF
-    outputs = Kfilter(fi[:,:,xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],\
-                          obs[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],\
-                          lon[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],\
-                          lat[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],loc_rad=localization_radius,obs_error=observation_error)
-    results.append(outputs)
-results = COMM.gather(results, root=0)
+results_NH = []
+results_SH = []
+NH = np.arange(0,180)
+SH = np.arange(180,360)
+lon_NH = lon[:,NH]
+lat_NH = lat[:,NH]
+lon_SH = lon[:,SH]
+lat_SH = lat[:,SH]
+for ix in scattered_jobs:
+    outputs_NH = Kfilter(prior[:,:,:,NH],obs[:,NH],lon_NH,lat_NH,\
+                         lon_NH[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],\
+                         lat_NH[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],loc_rad=localization_radius)
+    results_NH.append(outputs_NH)
+
+    outputs_SH = Kfilter(prior[:,:,:,SH],obs[:,SH],lon_SH,lat_SH,\
+                         lon_SH[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],\
+                         lat_SH[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],loc_rad=localization_radius)
+    results_SH.append(outputs_SH)
+
+results_NH = COMM.gather(results_NH, root=0)
+results_SH = COMM.gather(results_SH, root=0)
 
 if COMM.rank == 0: #tell the master node to compile the results into their own respective arrays and map back to the 2D domain
-    posterior = np.zeros((nmembers,1,nCat+1,xT,yT))
-    increments = np.zeros((nmembers,1,nCat,xT,yT))
-    results = list(itertools.zip_longest(*results))
-    ix = 0
-    for r1 in results:
-        for r2 in r1:
-            if r2 is not None:
-                posterior[:,0,1:,xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv] = r2[0]
-                increments[:,0,:,xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv] = r2[1]
-            ix += 1
+    posterior = np.zeros((2,nmembers,1,nCat+1,xT,yT))
+    increments = np.zeros((2,nmembers,1,nCat,xT,yT))
+    results_NH = list(itertools.zip_longest(*results_NH))
+    results_SH = list(itertools.zip_longest(*results_SH))
+    results = [results_NH,results_SH]
+    for hem in range(2):
+        ix = 0
+        for r1 in results[hem]:
+            for r2 in r1:
+                if r2 is not None:
+                    posterior[hem,:,0,1:,xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv] = r2[0]
+                    increments[hem,:,0,:,xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv] = r2[1]
+                ix += 1
 
+    posterior = np.concatenate((posterior[0],posterior[1]),axis=4)
+    increments = np.concatenate((increments[0],increments[1]),axis=4)
+    
     ds = xr.Dataset(data_vars=dict(part_size=(['member','time', 'ct', 'yT', 'xT'], increments)), coords=dict(yT=f['yT'], xT=f['xT']))
     ds.part_size.attrs['long_name'] = 'category_sea_ice_concentration_increments'
     ds.part_size.attrs['units'] = 'area_fraction'
