@@ -144,134 +144,136 @@ y,m,d = np.genfromtxt('coupler.res',skip_header=1)[1,:3].astype(np.int32)
 date = datetime(y,m,d).strftime('%Y%m%d')
 
 ### FILES ###
-grid = xr.open_dataset('../Data/ice.static.nc')
-lon = grid.GEOLON.to_numpy()
-lat = grid.GEOLAT.to_numpy()
-ice_restarts = sorted(glob.glob('ice_model.res*')) #prior model states (RESTART files)
-ocn_restart = sorted(glob.glob('MOM.res.*')) #get ocean states for salinity-dependent freezing point
-fi = xr.open_mfdataset(ice_restarts,concat_dim='ens',combine='nested',decode_times=False).part_size.to_numpy()[:,0,1:]
-fo = xr.open_mfdataset(ocn_restarts,concat_dim='ens',combine='nested',decode_times=False).s_surf.to_numpy()
-obs = xr.open_dataset('/gpfs/f5/gfdl_o/proj-shared/obs/NTSIC/NSIDC0051_SEAICE_SPEAR1deg_'+date+'_v2.0.nc').sic.to_numpy()
-nmembers,nCat,xT,yT = fi.shape
-
-### PARAMETERS ###
-rho_ice = 905.
-rho_snow= 330.
-phi_init = 0.75 #initial liquid fraction of frazil ice
-Si_new = 5 #salinity of mushy ice
-localization_radius = 0.03 #radians
-Ti = min(liquidus_temperature_mush(Si_new/phi_init),-0.1)
-qi_new = enthalpy_ice(Ti, Si_new)
-hlim = [1.0e-10, 0.1, 0.3, 0.7, 1.1, 1.5]
-hmid = np.array([0.5*(hlim[n]+hlim[n+1]) for n in range(nCat)])
-i_thick = np.tile((hmid*rho_ice)[None,:,None,None],(1,1,xT,yT))
-xdiv = xT//20
-ydiv = yT//20
-xindices,yindices = np.meshgrid(np.arange(0,xT,xdiv),np.arange(0,yT//2,ydiv))
-xindices = xindices.ravel()
-yindices = yindices.ravel()
-
-selected_variables = range(len(yindices)) #divide globe into domains of size xdiv x ydiv
-if COMM.rank == 0:
-    splitted_jobs = split(selected_variables, COMM.size)
-else:
-    splitted_jobs = None
-scattered_jobs = COMM.scatter(splitted_jobs, root=0) #scatter the tasks to each of the computer nodes.
-
-results_NH = []
-results_SH = []
-NH = np.arange(0,180)
-SH = np.arange(180,360)
-lon_NH = lon[:,NH]
-lat_NH = lat[:,NH]
-lon_SH = lon[:,SH]
-lat_SH = lat[:,SH]
-for ix in scattered_jobs:
-    outputs_NH = Kfilter(prior[:,:,:,NH],obs[:,NH],lon_NH,lat_NH,\
-                         lon_NH[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],\
-                         lat_NH[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],loc_rad=localization_radius)
-    results_NH.append(outputs_NH)
-
-    outputs_SH = Kfilter(prior[:,:,:,SH],obs[:,SH],lon_SH,lat_SH,\
-                         lon_SH[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],\
-                         lat_SH[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],loc_rad=localization_radius)
-    results_SH.append(outputs_SH)
-
-results_NH = COMM.gather(results_NH, root=0)
-results_SH = COMM.gather(results_SH, root=0)
-
-if COMM.rank == 0: #tell the master node to compile the results into their own respective arrays and map back to the 2D domain
-    posterior = np.zeros((2,nmembers,1,nCat+1,xT,yT//2))
-    increments = np.zeros((2,nmembers,1,nCat,xT,yT//2))
-    results_NH = list(itertools.zip_longest(*results_NH))
-    results_SH = list(itertools.zip_longest(*results_SH))
-    results = [results_NH,results_SH]
-    for hem in range(2):
-        ix = 0
-        for r1 in results[hem]:
-            for r2 in r1:
-                if r2 is not None:
-                    posterior[hem,:,0,1:,xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv] = r2[0]
-                    increments[hem,:,0,:,xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv] = r2[1]
-                ix += 1
-
-    posterior = np.concatenate((posterior[0],posterior[1]),axis=4)
-    increments = np.concatenate((increments[0],increments[1]),axis=4)
+obs_file = '/gpfs/f5/gfdl_o/proj-shared/obs/NTSIC/NSIDC0051_SEAICE_SPEAR1deg_'+date+'_v2.0.nc'
+if os.path_exists(obs_file):
+    grid = xr.open_dataset('../Data/ice.static.nc')
+    lon = grid.GEOLON.to_numpy()
+    lat = grid.GEOLAT.to_numpy()
+    ice_restarts = sorted(glob.glob('ice_model.res*')) #prior model states (RESTART files)
+    ocn_restart = sorted(glob.glob('MOM.res.*')) #get ocean states for salinity-dependent freezing point
+    fi = xr.open_mfdataset(ice_restarts,concat_dim='ens',combine='nested',decode_times=False).part_size.to_numpy()[:,0,1:]
+    fo = xr.open_mfdataset(ocn_restarts,concat_dim='ens',combine='nested',decode_times=False).s_surf.to_numpy()
+    obs = xr.open_dataset(obs_file).sic.to_numpy()
+    nmembers,nCat,xT,yT = fi.shape
     
-    ds = xr.Dataset(data_vars=dict(part_size=(['member','time', 'ct', 'yT', 'xT'], increments)), coords=dict(yT=f['yT'], xT=f['xT']))
-    ds.part_size.attrs['long_name'] = 'category_sea_ice_concentration_increments'
-    ds.part_size.attrs['units'] = 'area_fraction'
-    ds['time'] = [date]
-    ds.to_netcdf(savepath+date+'.EnKF_increment.nc')
-    posterior[:,0,0] = 1 - np.nansum(posterior[:,0,1:],1)
-    posterior[posterior<0] = 0
-    posterior[posterior>1] = 1
-
-    for member,file in enumerate(ice_restarts):
-        fr = xr.open_dataset(file)
-        prior = fr.part_size.to_numpy()
-        post = posterior[member]
-
-        cond1 = np.where((prior[:,1:]<=0) & (post[:,1:]>0)) #where original state was ice-free, but EnKF has added ice
-        cond2 = np.where((prior[:,1:]>0) & (post[:,1:]<=0)) #where original state contained ice, but EnKF has made ice-free
+    ### PARAMETERS ###
+    rho_ice = 905.
+    rho_snow= 330.
+    phi_init = 0.75 #initial liquid fraction of frazil ice
+    Si_new = 5 #salinity of mushy ice
+    localization_radius = 0.03 #radians
+    Ti = min(liquidus_temperature_mush(Si_new/phi_init),-0.1)
+    qi_new = enthalpy_ice(Ti, Si_new)
+    hlim = [1.0e-10, 0.1, 0.3, 0.7, 1.1, 1.5]
+    hmid = np.array([0.5*(hlim[n]+hlim[n+1]) for n in range(nCat)])
+    i_thick = np.tile((hmid*rho_ice)[None,:,None,None],(1,1,xT,yT))
+    xdiv = xT//20
+    ydiv = yT//20
+    xindices,yindices = np.meshgrid(np.arange(0,xT,xdiv),np.arange(0,yT//2,ydiv))
+    xindices = xindices.ravel()
+    yindices = yindices.ravel()
     
-        h_ice = fr.h_ice.to_numpy()
-        h_ice[cond1] = i_thick[cond1]
-        h_ice[cond2] = 0
-
-        h_snow = fr.h_snow.to_numpy()
-        h_snow[cond1] = 0
-        h_snow[cond2] = 0
-
-        enth_ice = fr.enth_ice.to_numpy()
-        for layer in range(4):
-            enth_ice[:,layer][cond1] = qi_new
-            enth_ice[:,layer][cond2] = 0
-
-        enth_snow = fr.enth_snow.to_numpy()
-        enth_snow[0][cond1] = 0
-        enth_snow[0][cond2] = 0
-
-        T_skin = fr.T_skin.to_numpy()
-        T_skin[cond1] = Ti
-        T_skin[cond2] = -0.054*fo[member,cond2]
-
-        sal_ice = fr.sal_ice.to_numpy()
-        for layer in range(4):
-            sal_ice[:,layer][cond1] = Si_new
-            sal_ice[:,layer][cond2] = 0
-
-        h_pond = fr.h_pond.to_numpy()
-        h_pond[cond1] = 0
-        h_pond[cond2] = 0
-
-        fr.part_size.loc[:] = post
-        fr.h_ice.loc[:] = h_ice
-        fr.h_snow.loc[:] = h_snow
-        fr.h_pond.loc[:] = h_pond
-        fr.enth_ice.loc[:] = enth_ice
-        fr.enth_snow.loc[:] = enth_snow
-        fr.T_skin.loc[:] = T_skin
-        fr.sal_ice.loc[:] = sal_ice
-
-        fr.to_netcdf(file,mode='a')
+    selected_variables = range(len(yindices)) #divide globe into domains of size xdiv x ydiv
+    if COMM.rank == 0:
+        splitted_jobs = split(selected_variables, COMM.size)
+    else:
+        splitted_jobs = None
+    scattered_jobs = COMM.scatter(splitted_jobs, root=0) #scatter the tasks to each of the computer nodes.
+    
+    results_NH = []
+    results_SH = []
+    NH = np.arange(0,180)
+    SH = np.arange(180,360)
+    lon_NH = lon[:,NH]
+    lat_NH = lat[:,NH]
+    lon_SH = lon[:,SH]
+    lat_SH = lat[:,SH]
+    for ix in scattered_jobs:
+        outputs_NH = Kfilter(prior[:,:,:,NH],obs[:,NH],lon_NH,lat_NH,\
+                             lon_NH[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],\
+                             lat_NH[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],loc_rad=localization_radius)
+        results_NH.append(outputs_NH)
+    
+        outputs_SH = Kfilter(prior[:,:,:,SH],obs[:,SH],lon_SH,lat_SH,\
+                             lon_SH[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],\
+                             lat_SH[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],loc_rad=localization_radius)
+        results_SH.append(outputs_SH)
+    
+    results_NH = COMM.gather(results_NH, root=0)
+    results_SH = COMM.gather(results_SH, root=0)
+    
+    if COMM.rank == 0: #tell the master node to compile the results into their own respective arrays and map back to the 2D domain
+        posterior = np.zeros((2,nmembers,1,nCat+1,xT,yT//2))
+        increments = np.zeros((2,nmembers,1,nCat,xT,yT//2))
+        results_NH = list(itertools.zip_longest(*results_NH))
+        results_SH = list(itertools.zip_longest(*results_SH))
+        results = [results_NH,results_SH]
+        for hem in range(2):
+            ix = 0
+            for r1 in results[hem]:
+                for r2 in r1:
+                    if r2 is not None:
+                        posterior[hem,:,0,1:,xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv] = r2[0]
+                        increments[hem,:,0,:,xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv] = r2[1]
+                    ix += 1
+    
+        posterior = np.concatenate((posterior[0],posterior[1]),axis=4)
+        increments = np.concatenate((increments[0],increments[1]),axis=4)
+        
+        ds = xr.Dataset(data_vars=dict(part_size=(['member','time', 'ct', 'yT', 'xT'], increments)), coords=dict(yT=f['yT'], xT=f['xT']))
+        ds.part_size.attrs['long_name'] = 'category_sea_ice_concentration_increments'
+        ds.part_size.attrs['units'] = 'area_fraction'
+        ds['time'] = [date]
+        ds.to_netcdf(savepath+date+'.EnKF_increment.nc')
+        posterior[:,0,0] = 1 - np.nansum(posterior[:,0,1:],1)
+        posterior[posterior<0] = 0
+        posterior[posterior>1] = 1
+    
+        for member,file in enumerate(ice_restarts):
+            fr = xr.open_dataset(file)
+            prior = fr.part_size.to_numpy()
+            post = posterior[member]
+    
+            cond1 = np.where((prior[:,1:]<=0) & (post[:,1:]>0)) #where original state was ice-free, but EnKF has added ice
+            cond2 = np.where((prior[:,1:]>0) & (post[:,1:]<=0)) #where original state contained ice, but EnKF has made ice-free
+        
+            h_ice = fr.h_ice.to_numpy()
+            h_ice[cond1] = i_thick[cond1]
+            h_ice[cond2] = 0
+    
+            h_snow = fr.h_snow.to_numpy()
+            h_snow[cond1] = 0
+            h_snow[cond2] = 0
+    
+            enth_ice = fr.enth_ice.to_numpy()
+            for layer in range(4):
+                enth_ice[:,layer][cond1] = qi_new
+                enth_ice[:,layer][cond2] = 0
+    
+            enth_snow = fr.enth_snow.to_numpy()
+            enth_snow[0][cond1] = 0
+            enth_snow[0][cond2] = 0
+    
+            T_skin = fr.T_skin.to_numpy()
+            T_skin[cond1] = Ti
+            T_skin[cond2] = -0.054*fo[member,cond2]
+    
+            sal_ice = fr.sal_ice.to_numpy()
+            for layer in range(4):
+                sal_ice[:,layer][cond1] = Si_new
+                sal_ice[:,layer][cond2] = 0
+    
+            h_pond = fr.h_pond.to_numpy()
+            h_pond[cond1] = 0
+            h_pond[cond2] = 0
+    
+            fr.part_size.loc[:] = post
+            fr.h_ice.loc[:] = h_ice
+            fr.h_snow.loc[:] = h_snow
+            fr.h_pond.loc[:] = h_pond
+            fr.enth_ice.loc[:] = enth_ice
+            fr.enth_snow.loc[:] = enth_snow
+            fr.T_skin.loc[:] = T_skin
+            fr.sal_ice.loc[:] = sal_ice
+    
+            fr.to_netcdf(file,mode='a')
