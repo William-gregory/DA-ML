@@ -16,20 +16,6 @@ def split(container, count):
     """
     return [container[_i::count] for _i in range(count)]
 
-def pp(x):
-    """
-    post-processing to ensure updated sea ice concentration
-    is bounded between 0 and 1.
-    """
-    x = x.transpose(1,0,2,3)
-    x[x<0] = 0    
-    SIC = np.nansum(x,0)
-    high = SIC>1
-    ratio = 1/SIC[high]
-    for CAT in range(5):
-        x[CAT,high] = x[CAT,high]*ratio
-    return x.transpose(1,0,2,3)
-
 def enthalpy_ice(zTin,zSin):
     """
     compute enthalpy of ice based on liquidus temperature
@@ -130,7 +116,21 @@ def Kfilter(prior,obs,lon,lat,lon_sub,lat_sub,loc_rad=1,obs_error=0.1):
         K = W * (Bm @ np.linalg.inv(Bo))
         posterior = np.array([prior[x] + (K @ (obs - priorH[x])) for x in range(E)])[:,:,trim_halo]
 
-        return pp(posterior.reshape(E,C,dX,dY)), (posterior-prior[:,:,trim_halo]).reshape(E,C,dX,dY)
+        return postprocess(posterior.reshape(E,C,dX,dY)), (posterior-prior[:,:,trim_halo]).reshape(E,C,dX,dY)
+
+def postprocess(x):
+    """
+    post-processing to ensure updated sea ice concentration
+    is bounded between 0 and 1.
+    """
+    x = x.transpose(1,0,2,3)
+    x[x<0] = 0    
+    SIC = np.nansum(x,0)
+    high = SIC>1
+    ratio = 1/SIC[high]
+    for CAT in range(5):
+        x[CAT,high] = x[CAT,high]*ratio
+    return x.transpose(1,0,2,3)
 
 ### PATHS ###
 experiment = os.getcwd().split('/')[-2].split('.')[0]
@@ -180,12 +180,12 @@ if os.path_exists(obs_file):
     lon_SH = lon[:,SH]
     lat_SH = lat[:,SH]
     for ix in scattered_jobs:
-        outputs_NH = Kfilter(prior[:,:,:,NH],obs[:,NH],lon_NH,lat_NH,\
+        outputs_NH = Kfilter(fi[:,:,:,NH],obs[:,NH],lon_NH,lat_NH,\
                              lon_NH[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],\
                              lat_NH[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],loc_rad=localization_radius)
         results_NH.append(outputs_NH)
     
-        outputs_SH = Kfilter(prior[:,:,:,SH],obs[:,SH],lon_SH,lat_SH,\
+        outputs_SH = Kfilter(fi[:,:,:,SH],obs[:,SH],lon_SH,lat_SH,\
                              lon_SH[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],\
                              lat_SH[xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv],loc_rad=localization_radius)
         results_SH.append(outputs_SH)
