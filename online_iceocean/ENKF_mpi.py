@@ -258,7 +258,7 @@ if os.path_exists(obs_file):
     
             T_skin = fr.T_skin.to_numpy()
             T_skin[cond1] = Ti
-            T_skin[cond2] = -0.054*SSS[cond2]
+            T_skin[cond2] = max(-0.054*SSS[cond2],np.ones(T_skin[cond2].shape)*-2)
     
             sal_ice = fr.sal_ice.to_numpy()
             for layer in range(4):
