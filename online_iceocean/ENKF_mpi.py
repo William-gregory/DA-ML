@@ -160,7 +160,6 @@ rho_snow= 330.
 phi_init = 0.75 #initial liquid fraction of frazil ice
 Si_new = 5 #salinity of mushy ice
 localization_radius = 0.03 #radians
-observation_error = 0.1 #10% SIC observation error
 Ti = min(liquidus_temperature_mush(Si_new/phi_init),-0.1)
 qi_new = enthalpy_ice(Ti, Si_new)
 hlim = [1.0e-10, 0.1, 0.3, 0.7, 1.1, 1.5]
