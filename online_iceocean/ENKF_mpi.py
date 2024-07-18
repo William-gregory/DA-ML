@@ -157,16 +157,7 @@ if os.path_exists(obs_file):
     nmembers,nCat,xT,yT = fi.shape
     
     ### PARAMETERS ###
-    rho_ice = 905.
-    rho_snow= 330.
-    phi_init = 0.75 #initial liquid fraction of frazil ice
-    Si_new = 5 #salinity of mushy ice
     localization_radius = 0.03 #radians
-    Ti = min(liquidus_temperature_mush(Si_new/phi_init),-0.1)
-    qi_new = enthalpy_ice(Ti, Si_new)
-    hlim = [1.0e-10, 0.1, 0.3, 0.7, 1.1, 1.5]
-    hmid = np.array([0.5*(hlim[n]+hlim[n+1]) for n in range(nCat)])
-    i_thick = np.tile((hmid*rho_ice)[None,:,None,None],(1,1,xT,yT))
     xdiv = xT//20
     ydiv = yT//20
     xindices,yindices = np.meshgrid(np.arange(0,xT,xdiv),np.arange(0,yT//2,ydiv))
@@ -228,7 +219,16 @@ if os.path_exists(obs_file):
         posterior[:,0,0] = 1 - np.nansum(posterior[:,0,1:],1)
         posterior[posterior<0] = 0
         posterior[posterior>1] = 1
-    
+
+        rho_ice = 905.
+        rho_snow= 330.
+        phi_init = 0.75 #initial liquid fraction of frazil ice
+        Si_new = 5 #salinity of mushy ice
+        Ti = min(liquidus_temperature_mush(Si_new/phi_init),-0.1)
+        qi_new = enthalpy_ice(Ti, Si_new)
+        hlim = [1.0e-10, 0.1, 0.3, 0.7, 1.1, 1.5]
+        hmid = np.array([0.5*(hlim[n]+hlim[n+1]) for n in range(nCat)])
+        i_thick = np.tile((hmid*rho_ice)[None,:,None,None],(1,1,xT,yT))
         for member,file in enumerate(ice_restarts):
             fr = xr.open_dataset(file)
             prior = fr.part_size.to_numpy()
