@@ -9,6 +9,13 @@ from sklearn.metrics.pairwise import haversine_distances
 
 COMM = MPI.COMM_WORLD
 
+def split(container, count):
+    """
+    function for dividing the number of tasks (container)
+    across the number of available compute nodes (count)
+    """
+    return [container[_i::count] for _i in range(count)]
+
 def pp(x):
     """
     post-processing to ensure updated sea ice concentration
@@ -98,13 +105,6 @@ def preprocess(prior,obs,lon1,lat1,lon2,lat2,localization_radius):
     W[W!=1] = 0
     
     return prior[:,:,pad_halo], obs[pad_halo], W, trim_halo
-
-def split(container, count):
-    """
-    function for dividing the number of tasks (container)
-    across the number of available compute nodes (count)
-    """
-    return [container[_i::count] for _i in range(count)]
 
 def Kfilter(prior,obs,lon,lat,lon_sub,lat_sub,loc_rad=1,obs_error=0.1):
     """
