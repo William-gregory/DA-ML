@@ -202,8 +202,8 @@ results_NH = COMM.gather(results_NH, root=0)
 results_SH = COMM.gather(results_SH, root=0)
 
 if COMM.rank == 0: #tell the master node to compile the results into their own respective arrays and map back to the 2D domain
-    posterior = np.zeros((2,nmembers,1,nCat+1,xT,yT))
-    increments = np.zeros((2,nmembers,1,nCat,xT,yT))
+    posterior = np.zeros((2,nmembers,1,nCat+1,xT,yT//2))
+    increments = np.zeros((2,nmembers,1,nCat,xT,yT//2))
     results_NH = list(itertools.zip_longest(*results_NH))
     results_SH = list(itertools.zip_longest(*results_SH))
     results = [results_NH,results_SH]
