@@ -27,7 +27,7 @@ def enthalpy_ice(zTin,zSin):
     """
     compute enthalpy of ice based on liquidus temperature
     and salinity of mushy ice. Used to create a new 'sea ice
-    profile' in the case the CNN adds ice to grid cell which 
+    profile' in the case the EnKF adds ice to grid cell which 
     was previously ice-free.
     """
     cp_wtr  = 4200
@@ -40,7 +40,7 @@ def enthalpy_ice(zTin,zSin):
 def liquidus_temperature_mush(Sbr):
     """
     compute liquidus temp of ice based on salinity of mushy ice. 
-    Used to create a new 'sea ice profile' in the case the CNN adds
+    Used to create a new 'sea ice profile' in the case the EnKF adds
     ice to grid cell which was previously ice-free.
     """
     Sb_liq =  123.66702800276086
