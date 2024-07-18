@@ -4,6 +4,7 @@ import itertools
 import numpy as np
 import xarray as xr
 from datetime import datetime,timedelta
+from sklearn.metrics.pairwise import haversine_distances
 
 def pp(x):
     """
@@ -64,57 +65,62 @@ def liquidus_temperature_mush(Sbr):
 
     return ((Sbr / (M1_liq + N1_liq * Sbr)) + O1_liq) * t_high + ((Sbr / (M2_liq + N2_liq * Sbr)) + O2_liq) * (1.0 - t_high)
 
-def haversine(coords,localization_radius=0.03):
+def preprocess(prior,obs,lon1,lat1,lon2,lat2,localization_radius):
     """
-    compute the localization matrix based on Haversine distance.
-    coords: Nx2 array of longitude and latitude points
-
-    returns: NxN binary matrix with zeros outside of localization radius
-    """
-    lon = np.deg2rad(coords[:, 0])
-    lat = np.deg2rad(coords[:, 1])
-    lon1, lon2 = np.meshgrid(lon, lon)
-    lat1, lat2 = np.meshgrid(lat, lat)
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
+    pad the domain of the prior state variables and observations
+    to appropriately handle the chosen localization distance.
+    Then compute the localization matrix for this padded domain.
     
-    a = np.sin(dlat / 2.0)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2.0)**2
-    c = 2 * np.arcsin(np.sqrt(a))
-    c[c<=localization_radius] = 1
-    c[c!=1] = 0
-    
-    return c
-
-def Kfilter(prior,obs,lon,lat,loc_rad,obs_error):
-    """
-    ensemble Kalman filter (still need to do 'adjustment' part)
-    prior state variables of size: E, C, dX, dY
-    E is the number of ensemble members
-    C is the number of model states (categories)
-    dX is the number of x grid points
-    dY is the number of y grid points
-
-    returns: posterior state variables and increments
+    Return the padded state variables, observations and
+    localization matrix, and the indices of the original (unpadded) domain 
     """
     E,C,dX,dY = prior.shape
     prior = prior.reshape(E,C,dX*dY)
     obs = obs.ravel()
-    obs[np.isnan(obs)] = 0
+    lon1 = lon1.ravel()
+    lat1 = lat1.ravel()
+    lon2 = lon2.ravel()
+    lat2 = lat2.ravel()
     prior[np.isnan(prior)] = 0
-    priorH = np.nansum(prior,1) #prior passed through obs operator
+    obs[np.isnan(obs)] = 0
+    
+    X = np.deg2rad(np.array([lat1,lon1]).T)
+    Y = np.deg2rad(np.array([lat2,lon2]).T)
+    c = haversine_distances(X,Y)                                                                                                                                                                                                                  
+    pad_halo = np.unique(np.where(c<=localization_radius)[0])
+    Z = np.deg2rad(np.array([lat1[pad_halo],lon1[pad_halo]]).T)
+    trim_halo = np.array([np.squeeze(np.where((Z == y).all(axis=1))) for y in Y])
+    W = haversine_distances(Z,Z)
+    W[W<=localization_radius] = 1
+    W[W!=1] = 0
+    
+    return prior[:,:,pad_halo], obs[pad_halo], W, trim_halo
+
+def Kfilter(prior,obs,lon,lat,lon_sub,lat_sub,loc_rad=1,obs_error=0.1):
+    """
+    ensemble Kalman filter (still need to do 'adjustment' part)
+    prior state variables of size: E, C, N
+    E is the number of ensemble members
+    C is the number of model states (categories)
+    N is the number of grid points
+
+    returns: posterior state variables and increments
+    """
+    prior, obs, W, trim_halo = preprocess(prior,obs,lon,lat,lon_sub,lat_sub,localization_radius=loc_rad)
+    priorH = np.nansum(prior,1)
+    E,C,N = prior.shape
+    dX,dY = lon_sub.shape
+
     if ((priorH==0).all() & (obs==0).all()):
         tmp = np.zeros((E,C,dX,dY))
         return tmp,tmp
     else:
-        coords = np.array([lat.ravel(),lon.ravel()]).T
-        W = haversine(coords,loc_rad)
-
         Bm = np.einsum('ijk,il->jkl', prior-np.nanmean(prior,0), priorH-np.nanmean(priorH,0)) / (E - 1)
-        Bo = np.cov(priorH.T) + np.eye(len(W))*obs_error
+        Bo = np.cov(priorH.T) + np.eye(N)*obs_error
         K = W * (Bm @ np.linalg.inv(Bo))
-        posterior = np.array([prior[x] + (K @ (obs - priorH[x])) for x in range(E)])
+        posterior = np.array([prior[x] + (K @ (obs - priorH[x])) for x in range(E)])[:,:,trim_halo]
 
-        return pp(posterior.reshape(E,C,dX,dY)), (posterior-prior).reshape(E,C,dX,dY)
+        return pp(posterior.reshape(E,C,dX,dY)), (posterior-prior[:,:,trim_halo]).reshape(E,C,dX,dY)
 
 ### PATHS ###
 experiment = os.getcwd().split('/')[-2].split('.')[0]
@@ -150,16 +156,24 @@ qi_new = enthalpy_ice(Ti, Si_new)
 hlim = [1.0e-10, 0.1, 0.3, 0.7, 1.1, 1.5]
 hmid = np.array([0.5*(hlim[n]+hlim[n+1]) for n in range(nCat)])
 i_thick = np.tile((hmid*rho_ice)[None,:,None,None],(1,1,xT,yT))
-xdiv = xT//10
-ydiv = yT//10
+xdiv = xT//20
+ydiv = yT//20
 
-posterior = np.zeros((nmembers,1,nCat+1,xT,yT))
-increments = np.zeros((nmembers,1,nCat,xT,yT))
-for ix in range(0,xT,xdiv):
-    for jx in range(0,yT,ydiv):
-        posterior[:,0,1:,ix:ix+xdiv,jx:jx+ydiv],increments[:,0,:,ix:ix+xdiv,jx:jx+ydiv] = Kfilter(fi[:,:,ix:ix+xdiv,jx:jx+ydiv],obs[ix:ix+xdiv,jx:jx+ydiv],\
-                                                                                            lon[ix:ix+xdiv,jx:jx+ydiv],lat[ix:ix+xdiv,jx:jx+ydiv],\
-                                                                                            loc_rad=localization_radius,obs_error=observation_error)
+posterior = np.zeros((nmembers,1,nCat+1,xT,yT//2))
+increments = np.zeros((nmembers,1,nCat,xT,yT//2))
+hems = [np.arange(0,180),np.arange(180,360)]
+for hem in range(2):
+    lon_sub = lon[:,hems[hem]]
+    lat_sub = lat[:,hems[hem]]
+    for ix in range(0,xT,xdiv):
+        for jx in range(0,yT//2,ydiv):
+            outputs = Kfilter(prior[:,:,:,hems[hem]],obs[:,hems[hem]],\
+                              lon_sub,lat_sub,lon_sub[ix:ix+xdiv,jx:jx+ydiv],\
+                              lat_sub[ix:ix+xdiv,jx:jx+ydiv],loc_rad=localization_radius)
+            posterior[hem,:,0,1:,ix:ix+xdiv,jx:jx+ydiv] = outputs[0]
+            increments[hem,:,0,:,ix:ix+xdiv,jx:jx+ydiv] = outputs[1]
+posterior = np.concatenate((posterior[0],posterior[1]),axis=4)
+increments = np.concatenate((increments[1],increments[1]),axis=4)
 
 ds = xr.Dataset(data_vars=dict(part_size=(['member','time', 'ct', 'yT', 'xT'], increments)), coords=dict(yT=f['yT'], xT=f['xT']))
 ds.part_size.attrs['long_name'] = 'category_sea_ice_concentration_increments'
