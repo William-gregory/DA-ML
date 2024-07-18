@@ -128,7 +128,7 @@ def postprocess(x):
     SIC = np.nansum(x,0)
     high = SIC>1
     ratio = 1/SIC[high]
-    for CAT in range(5):
+    for CAT in range(x.shape[0]):
         x[CAT,high] = x[CAT,high]*ratio
     return x.transpose(1,0,2,3)
 
