@@ -173,8 +173,8 @@ if os.path_exists(obs_file):
     
     results_NH = []
     results_SH = []
-    NH = np.arange(0,180)
-    SH = np.arange(180,360)
+    NH = np.arange(0,yT//2)
+    SH = np.arange(yT//2,yT)
     lon_NH = lon[:,NH]
     lat_NH = lat[:,NH]
     lon_SH = lon[:,SH]
@@ -211,17 +211,18 @@ if os.path_exists(obs_file):
         posterior = np.concatenate((posterior[0],posterior[1]),axis=4)
         increments = np.concatenate((increments[0],increments[1]),axis=4)
         
-        ds = xr.Dataset(data_vars=dict(part_size=(['member','time', 'ct', 'yT', 'xT'], increments)), coords=dict(yT=f['yT'], xT=f['xT']))
+        ds = xr.Dataset(data_vars=dict(part_size=(['members','time', 'ct', 'yT', 'xT'], increments)), coords=dict(yT=f['yT'], xT=f['xT']))
         ds.part_size.attrs['long_name'] = 'category_sea_ice_concentration_increments'
         ds.part_size.attrs['units'] = 'area_fraction'
         ds['time'] = [date]
+        ds.mean('members').to_netcdf(savepath+date+'.EnKF_increment.ens_mean.nc')
         ds.to_netcdf(savepath+date+'.EnKF_increment.nc')
         posterior[:,0,0] = 1 - np.nansum(posterior[:,0,1:],1)
         posterior[posterior<0] = 0
         posterior[posterior>1] = 1
 
         rho_ice = 905.
-        rho_snow= 330.
+        rho_snow = 330.
         phi_init = 0.75 #initial liquid fraction of frazil ice
         Si_new = 5 #salinity of mushy ice
         Ti = min(liquidus_temperature_mush(Si_new/phi_init),-0.1)
