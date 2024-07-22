@@ -103,7 +103,7 @@ def Kfilter(prior,obs,lon,lat,lon_sub,lat_sub,loc_rad=1,obs_error=0.1):
     returns: posterior state variables and increments
     """
     prior, obs, W, trim_halo = preprocess(prior,obs,lon,lat,lon_sub,lat_sub,localization_radius=loc_rad)
-    priorH = np.nansum(prior,1)
+    priorH = np.nansum(prior,1) #aggregate (observed) SIC
     E,C,N = prior.shape
     dX,dY = lon_sub.shape
 
@@ -111,9 +111,11 @@ def Kfilter(prior,obs,lon,lat,lon_sub,lat_sub,loc_rad=1,obs_error=0.1):
         tmp = np.zeros((E,C,dX,dY))
         return tmp,tmp
     else:
-        Bm = np.einsum('ijk,il->jkl', prior-np.nanmean(prior,0), priorH-np.nanmean(priorH,0)) / (E - 1)
-        Bo = np.cov(priorH.T) + np.eye(N)*obs_error
-        K = W * (Bm @ np.linalg.inv(Bo))
+        prior_anom = prior-np.nanmean(prior,0)
+        priorH_anom = priorH-np.nanmean(priorH,0)
+        Bm = np.einsum('ijk,il->jkl', prior_anom, priorH_anom) / (E - 1) #covariance between categories & aggregate
+        Bo = np.cov(priorH.T) + np.eye(N)*obs_error #covariance of aggregate
+        K = W * (Bm @ np.linalg.inv(Bo)) #Kalman gain
         posterior = np.array([prior[x] + (K @ (obs - priorH[x])) for x in range(E)])[:,:,trim_halo]
 
         return postprocess(posterior.reshape(E,C,dX,dY)), (posterior-prior[:,:,trim_halo]).reshape(E,C,dX,dY)
