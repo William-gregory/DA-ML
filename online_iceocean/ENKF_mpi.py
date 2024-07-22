@@ -152,9 +152,9 @@ y,m,d = np.genfromtxt('coupler.res',skip_header=1)[1,:3].astype(np.int32)
 date = datetime(y,m,d).strftime('%Y%m%d')
 
 ### FILES ###
-obs_file = '/gpfs/f5/gfdl_o/proj-shared/obs/NTSIC/NSIDC0051_SEAICE_SPEAR1deg_'+date+'_v2.0.nc'
+obs_file = '/gpfs/f5/gfdl_o/scratch/William.Gregory/NTSIC/regrid_OM4/NSIDC0051_SEAICE_SPEAR1deg_'+date+'_v2.0.nc'
 if os.path_exists(obs_file):
-    grid = xr.open_dataset('../Data/ice.static.nc')
+    grid = xr.open_dataset('/ncrc/home2/William.Gregory/dart_manhattan/ice.static.nc')
     lon = grid.GEOLON.to_numpy()
     lat = grid.GEOLAT.to_numpy()
     ice_restarts = sorted(glob.glob('ice_model.res*')) #prior model states (RESTART files)
