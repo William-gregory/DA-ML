@@ -120,7 +120,7 @@ def Kfilter(prior,obs,lon,lat,lon_sub,lat_sub,loc_rad=1,obs_error=0.1):
     else:
         valid_obs = np.squeeze(np.where(~np.isnan(obs)))
         priorH = np.nansum(prior,1)[:,valid_obs]
-        N = prior.shape[1]
+        N = priorH.shape[1]
 
         prior_anom = prior-np.nanmean(prior,0)
         priorH_anom = priorH-np.nanmean(priorH,0)
