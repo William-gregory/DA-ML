@@ -86,9 +86,15 @@ def preprocess(prior,obs,lon1,lat1,lon2,lat2,localization_radius):
     pad_halo = np.unique(np.where(c<=localization_radius)[0])
     Z = np.deg2rad(np.array([lat1[pad_halo],lon1[pad_halo]]).T)
     trim_halo = np.array([np.squeeze(np.where((Z == y).all(axis=1))) for y in Y])
-    W = haversine_distances(Z,Z)
-    W[W<=localization_radius] = 1
-    W[W!=1] = 0
+    D = haversine_distances(Z,Z)
+    W = np.copy(D)
+    ratio = D/(localization_radius//2)
+    cond1 = ratio<=1
+    cond2 = ((ratio>1) & (ratio<=2))
+    W[cond1] = -(ratio[cond1]**5) / 4 + ratio[cond1]**4 / 2 + 5 * ratio[cond1]**3 / 8 - 5 * ratio[cond1]**2 / 3 + 1
+    W[cond2] = ratio[cond2]**5 / 12 - ratio[cond2]**4 / 2 + 5 * ratio[cond2]**3 / 8 + 5 * ratio[cond2]**2 / 3 - 5 * ratio[cond2] + 4 - 2 / 3 / ratio[cond2]
+    W[D==0] = 1
+    W[D>localization_radius] = 0
     
     return prior[:,:,pad_halo], obs[pad_halo], W, trim_halo
 
@@ -159,7 +165,7 @@ if os.path_exists(obs_file):
     nmembers,nCat,xT,yT = prior.shape
     
     ### PARAMETERS ###
-    localization_radius = 0.03 #radians
+    localization_radius = 0.06 #radians
     xdiv = xT//20
     ydiv = yT//20
     xindices,yindices = np.meshgrid(np.arange(0,xT,xdiv),np.arange(0,yT//2,ydiv))
@@ -169,6 +175,7 @@ if os.path_exists(obs_file):
     selected_variables = range(len(yindices)) #divide globe into tiles of size xdiv x ydiv
     if COMM.rank == 0:
         splitted_jobs = split(selected_variables, COMM.size)
+        print('Starting filter:',datetime.now())
     else:
         splitted_jobs = None
     scattered_jobs = COMM.scatter(splitted_jobs, root=0) #scatter the tasks to each of the computer nodes.
@@ -283,3 +290,4 @@ if os.path_exists(obs_file):
             fr.sal_ice.loc[:] = sal_ice
     
             fr.to_netcdf(file,mode='a')
+        print('Finish filter and write:',datetime.now())
