@@ -295,3 +295,6 @@ if os.path_exists(obs_file):
     
             fr.to_netcdf(file,mode='a')
         print('Finish filter and write:',datetime.now())
+else:
+    if COMM.rank == 0:
+        print('No observation file found for date',date)
