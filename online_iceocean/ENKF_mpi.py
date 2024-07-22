@@ -107,7 +107,7 @@ def Kfilter(prior,obs,lon,lat,lon_sub,lat_sub,loc_rad=1,obs_error=0.1):
 
     returns: posterior state variables and increments
     """
-    prior, obs, W, trim_halo = preprocess(prior,obs,lon,lat,lon_sub,lat_sub)
+    prior, obs, W, trim_halo = preprocess(prior,obs,lon,lat,lon_sub,lat_sub,localization_radius=loc_rad)
     E,C = prior.shape[0], prior.shape[1]
     dX,dY = lon_sub.shape
 
