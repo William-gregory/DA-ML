@@ -210,7 +210,8 @@ if os.path_exists(obs_file):
     
         posterior = np.concatenate((posterior[0],posterior[1]),axis=4)
         increments = np.concatenate((increments[0],increments[1]),axis=4)
-        
+
+        ### SAVE INCREMENTS ###
         ds = xr.Dataset(data_vars=dict(part_size=(['members','time', 'ct', 'yT', 'xT'], increments)), coords=dict(yT=fi['yT'], xT=fi['xT']))
         ds.part_size.attrs['long_name'] = 'category_sea_ice_concentration_increments'
         ds.part_size.attrs['units'] = 'area_fraction'
@@ -221,6 +222,7 @@ if os.path_exists(obs_file):
         posterior[posterior<0] = 0
         posterior[posterior>1] = 1
 
+        ### UPDATE SEA ICE RESTARTS & CREATE NEW SEA ICE PROFILES ###
         rho_ice = 905.
         rho_snow = 330.
         phi_init = 0.75 #initial liquid fraction of frazil ice
