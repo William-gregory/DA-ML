@@ -78,7 +78,6 @@ def preprocess(prior,obs,lon1,lat1,lon2,lat2,localization_radius):
     lon2 = lon2.ravel()
     lat2 = lat2.ravel()
     prior[np.isnan(prior)] = 0
-    obs[np.isnan(obs)] = 0
     
     X = np.deg2rad(np.array([lat1,lon1]).T)
     Y = np.deg2rad(np.array([lat2,lon2]).T)
