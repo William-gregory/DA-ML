@@ -211,18 +211,18 @@ if os.path_exists(obs_file):
                     ix += 1
     
         posterior = np.concatenate((posterior[0],posterior[1]),axis=4)
-        increments = np.concatenate((increments[0],increments[1]),axis=4)
+        posterior[:,0,0] = 1 - np.nansum(posterior[:,0,1:],1)
+        posterior[posterior<0] = 0
+        posterior[posterior>1] = 1
 
         ### SAVE INCREMENTS ###
+        increments = np.concatenate((increments[0],increments[1]),axis=4)
         ds = xr.Dataset(data_vars=dict(part_size=(['members','time', 'ct', 'yT', 'xT'], increments)), coords=dict(yT=fi['yT'], xT=fi['xT']))
         ds.part_size.attrs['long_name'] = 'category_sea_ice_concentration_increments'
         ds.part_size.attrs['units'] = 'area_fraction'
         ds['time'] = [date]
         ds.mean('members').to_netcdf(savepath+date+'.EnKF_increment.ens_mean.nc')
         ds.to_netcdf(savepath+date+'.EnKF_increment.nc')
-        posterior[:,0,0] = 1 - np.nansum(posterior[:,0,1:],1)
-        posterior[posterior<0] = 0
-        posterior[posterior>1] = 1
 
         ### UPDATE SEA ICE RESTARTS & CREATE NEW SEA ICE PROFILES ###
         rho_ice = 905.
