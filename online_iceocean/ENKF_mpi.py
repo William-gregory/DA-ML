@@ -99,7 +99,7 @@ def preprocess(prior,obs,lon1,lat1,lon2,lat2,localization_radius):
 
 def Kfilter(prior,obs,lon,lat,lon_sub,lat_sub,loc_rad=1,obs_error=0.1):
     """
-    ensemble Kalman filter (still need to do 'adjustment' part)
+    ensemble adjustment Kalman filter
     prior state variables of size: E, C, N
     E is the number of ensemble members
     C is the number of model states (categories)
