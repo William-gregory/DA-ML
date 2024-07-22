@@ -117,7 +117,7 @@ def Kfilter(prior,obs,lon,lat,lon_sub,lat_sub,loc_rad=1,obs_error=0.1):
     elif np.isnan(obs).all():
         return prior[:,:,trim_halo].reshape(E,C,dX,dY),np.zeros((E,C,dX,dY))
     else:
-        valid_obs = np.squeeze(np.where(~np.isnan(obs)))
+        valid_obs = np.atleast_1d(np.squeeze(np.where(~np.isnan(obs))))
         priorH = np.nansum(prior,1)[:,valid_obs]
         N = priorH.shape[1]
 
