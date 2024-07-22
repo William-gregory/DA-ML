@@ -87,7 +87,7 @@ def preprocess(prior,obs,lon1,lat1,lon2,lat2,localization_radius):
     Z = np.deg2rad(np.array([lat1[pad_halo],lon1[pad_halo]]).T)
     trim_halo = np.array([np.squeeze(np.where((Z == y).all(axis=1))) for y in Y])
     D = haversine_distances(Z,Z)
-    W = np.copy(D)
+    W = np.zeros_like(D)
     ratio = D/(localization_radius//2)
     cond1 = ratio<=1
     cond2 = ((ratio>1) & (ratio<=2))
