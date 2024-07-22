@@ -232,7 +232,7 @@ if os.path_exists(obs_file):
         i_thick = np.tile((hmid*rho_ice)[None,:,None,None],(1,1,xT,yT))
         for member,file in enumerate(ice_restarts):
             fr = xr.open_dataset(file)
-            SSS = xr.open_dataset(ocn_restarts[member]).s_surf.to_numpy()
+            SSS = xr.open_dataset(ocn_restarts[member],decode_times=False).Salt.to_numpy()[:,0]
             prior_m = fr.part_size.to_numpy()
             post_m = posterior[member]
     
@@ -258,7 +258,7 @@ if os.path_exists(obs_file):
     
             T_skin = fr.T_skin.to_numpy()
             T_skin[cond1] = Ti
-            T_skin[cond2] = max(-0.054*SSS[cond2],np.ones(T_skin[cond2].shape)*-2)
+            T_skin[cond2] = np.maximum(-0.0539*(np.tile(SSS[:,None],(1,nCat,1,1))[cond2]),-2.)
     
             sal_ice = fr.sal_ice.to_numpy()
             for layer in range(4):
