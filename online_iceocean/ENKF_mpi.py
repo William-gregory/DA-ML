@@ -228,7 +228,7 @@ if os.path.exists(obs_file):
 
         ### SAVE INCREMENTS ###
         increments = np.concatenate((increments[0],increments[1]),axis=4)
-        ds = xr.Dataset(data_vars=dict(part_size=(['members','time', 'ct', 'yT', 'xT'], increments)), coords=dict(yT=fi['yT'], xT=fi['xT']))
+        ds = xr.Dataset(data_vars=dict(part_size=(['members','time', 'ct', 'yT', 'xT'], increments)), coords=dict(yT=fi['yaxis_1'], xT=fi['xaxis_1']))
         ds.part_size.attrs['long_name'] = 'category_sea_ice_concentration_increments'
         ds.part_size.attrs['units'] = 'area_fraction'
         ds['time'] = [date]
