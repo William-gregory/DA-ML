@@ -163,8 +163,7 @@ if os.path.exists(obs_file):
     lat = grid.GEOLAT.to_numpy()
     ice_restarts = sorted(glob.glob('ice_model.res*')) #prior model states (RESTART files)
     ocn_restart = sorted(glob.glob('MOM.res.*')) #get ocean states for salinity-dependent freezing point
-    fi = xr.open_mfdataset(ice_restarts,concat_dim='ens',combine='nested',decode_times=False)
-    prior = fi.part_size.to_numpy()[:,0,1:]
+    prior = xr.open_mfdataset(ice_restarts,concat_dim='ens',combine='nested',decode_times=False).part_size.to_numpy()[:,0,1:]
     obs = xr.open_dataset(obs_file).sic.to_numpy()
     nmembers,nCat,xT,yT = prior.shape
     
@@ -228,7 +227,7 @@ if os.path.exists(obs_file):
 
         ### SAVE INCREMENTS ###
         increments = np.concatenate((increments[0],increments[1]),axis=4)
-        ds = xr.Dataset(data_vars=dict(part_size=(['members','time', 'ct', 'yT', 'xT'], increments)), coords=dict(yT=fi['yaxis_1'], xT=fi['xaxis_1']))
+        ds = xr.Dataset(data_vars=dict(part_size=(['members','time', 'ct', 'yT', 'xT'], increments)), coords=dict(yT=grid['yT'], xT=grid['xT']))
         ds.part_size.attrs['long_name'] = 'category_sea_ice_concentration_increments'
         ds.part_size.attrs['units'] = 'area_fraction'
         ds['time'] = [date]
