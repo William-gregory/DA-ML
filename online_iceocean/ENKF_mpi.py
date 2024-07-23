@@ -162,7 +162,7 @@ if os.path.exists(obs_file):
     lon = grid.GEOLON.to_numpy()
     lat = grid.GEOLAT.to_numpy()
     ice_restarts = sorted(glob.glob('ice_model.res*')) #prior model states (RESTART files)
-    ocn_restart = sorted(glob.glob('MOM.res.*')) #get ocean states for salinity-dependent freezing point
+    ocn_restarts = sorted(glob.glob('MOM.res.*')) #get ocean states for salinity-dependent freezing point
     prior = xr.open_mfdataset(ice_restarts,concat_dim='ens',combine='nested',decode_times=False).part_size.to_numpy()[:,0,1:]
     obs = xr.open_dataset(obs_file).sic.to_numpy()
     nmembers,nCat,xT,yT = prior.shape
