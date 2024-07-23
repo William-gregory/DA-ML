@@ -97,7 +97,7 @@ def preprocess(prior,obs,lon1,lat1,lon2,lat2,localization_radius):
     
     return prior[:,:,pad_halo], obs[pad_halo], W, trim_halo
 
-def Kfilter(prior,obs,lon,lat,lon_sub,lat_sub,loc_rad=1,obs_error=0.1):
+def Kfilter(prior,obs,lon,lat,lon_sub,lat_sub,loc_rad=1,obs_error=0.01):
     """
     ensemble adjustment Kalman filter
     prior state variables of size: E, C, N
