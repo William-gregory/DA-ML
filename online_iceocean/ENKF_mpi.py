@@ -169,8 +169,8 @@ if os.path.exists(obs_file):
     
     ### PARAMETERS ###
     localization_radius = 0.06 #radians
-    xdiv = xT//40
-    ydiv = yT//40
+    xdiv = xT//20
+    ydiv = yT//20
     xindices,yindices = np.meshgrid(np.arange(0,xT,xdiv),np.arange(0,yT//2,ydiv))
     xindices = xindices.ravel()
     yindices = yindices.ravel()
