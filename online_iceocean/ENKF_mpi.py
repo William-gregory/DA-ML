@@ -8,6 +8,9 @@ from datetime import datetime,timedelta
 from sklearn.metrics.pairwise import haversine_distances
 
 COMM = MPI.COMM_WORLD
+if COMM.rank == 0:
+    print('Number of PEs:',COMM.size,flush=True)
+    print('Starting filter:',datetime.now(),flush=True)
 
 def split(container, count):
     """
@@ -178,7 +181,6 @@ if os.path.exists(obs_file):
     selected_variables = range(len(yindices)) #divide globe into tiles of size xdiv x ydiv
     if COMM.rank == 0:
         splitted_jobs = split(selected_variables, COMM.size)
-        print('Starting filter:',datetime.now())
     else:
         splitted_jobs = None
     scattered_jobs = COMM.scatter(splitted_jobs, root=0) #scatter the tasks to each of the computer nodes.
@@ -293,7 +295,7 @@ if os.path.exists(obs_file):
             fr.sal_ice.loc[:] = sal_ice
     
             fr.to_netcdf(file,mode='a')
-        print('Finish filter and write:',datetime.now())
+        print('Finish filter and write:',datetime.now(),flush=True)
 else:
     if COMM.rank == 0:
-        print('No observation file found for date',date)
+        print('No observation file found for date',date,flush=True)
