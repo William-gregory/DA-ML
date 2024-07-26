@@ -202,7 +202,7 @@ if os.path.exists(obs_file):
          with open(tile_fp, 'rb') as f:
             tiling = pickle.load(f)
 
-    Ntiles = np.arange(400)
+    Ntiles = np.arange(len(yindices))
     selected_variables = range(len(Ntiles))
     if COMM.rank == 0:
         splitted_jobs = split(selected_variables, COMM.size)
