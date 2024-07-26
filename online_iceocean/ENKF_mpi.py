@@ -129,6 +129,7 @@ def Kfilter(prior,obs,W,trim,reshape_dims,obs_error=0.01):
     else:
         valid_obs = np.atleast_1d(np.squeeze(np.where(~np.isnan(obs))))
         priorH = np.nansum(prior,1)[:,valid_obs]
+	innov = obs[valid_obs] - priorH
         N = priorH.shape[1]
 
         prior_anom = prior-np.nanmean(prior,0)
