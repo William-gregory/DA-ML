@@ -159,7 +159,7 @@ def postprocess(x):
 if COMM.rank == 0:
     experiment = os.getcwd().split('/')[-2].split('.')[0]
     user = os.popen('whoami').read().split('\n')[0]
-    savepath = '/gpfs/f5/gfdl_o/scratch/'+user+'/EnKF_increments/'+experiment+'/'
+    savepath = '/gpfs/f5/gfdl_o/scratch/'+user+'/ENKF/increments/'+experiment+'/'
     if os.path.exists(savepath)==False:
         os.makedirs(savepath)
 
