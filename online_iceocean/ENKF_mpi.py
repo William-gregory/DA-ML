@@ -155,10 +155,10 @@ def postprocess(x):
         x[CAT,high] = x[CAT,high]*ratio
     return x.transpose(1,0,2,3)
 
-### PATHS ###                                                                                                                                                                                                                            
+### PATHS ###
+user = os.popen('whoami').read().split('\n')[0]
 if COMM.rank == 0:
     experiment = os.getcwd().split('/')[-2].split('.')[0]
-    user = os.popen('whoami').read().split('\n')[0]
     savepath = '/gpfs/f5/gfdl_o/scratch/'+user+'/ENKF/increments/'+experiment+'/'
     if os.path.exists(savepath)==False:
         os.makedirs(savepath)
