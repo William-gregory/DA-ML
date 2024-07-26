@@ -136,7 +136,7 @@ def Kfilter(prior,obs,W,trim,reshape_dims,obs_error=0.01):
         Bm = np.einsum('ijk,il->jkl', prior_anom, priorH_anom) / (E - 1) #covariance between categories & aggregate                                                                                                                      
         Bo = np.cov(priorH.T) + np.eye(N)*obs_error #covariance of aggregate                                                                                                                                                             
         K = W[:,valid_obs] * (Bm @ np.linalg.inv(Bo)) #Kalman gain                                                                                                                                                                       
-        posterior = np.array([prior[x] + (K @ (obs[valid_obs] - priorH[x])) for x in range(E)])[:,:,trim]
+        posterior = (prior + (K @ innov.T).transpose(2,0,1))[:,:,trim]
 
 	return postprocess(posterior.reshape(E,C,dX,dY)), (posterior-prior[:,:,trim]).reshape(E,C,dX,dY)
 
