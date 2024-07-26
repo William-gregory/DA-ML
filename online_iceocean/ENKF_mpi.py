@@ -182,7 +182,7 @@ if os.path.exists(obs_file):
 
     ### PARAMETERS ###                                                                                                                                                                                                                   
     localization_radius = 0.06 #radians                                                                                                                                                                                                  
-    tile_fp = '/gpfs/f5/gfdl_o/scratch/William.Gregory/ENKF/tiles/Tiling_OM4grid_locrad'+str(localization_radius)+'.pkl'
+    tile_fp = '/gpfs/f5/gfdl_o/scratch/'+user+'/ENKF/tiles/Tiling_OM4grid_locrad'+str(localization_radius)+'.pkl'
     obs_error = 0.01 #variance of observed SIC                                                                                                                                                                                           
     xdiv = xT//20
     ydiv = yT//20
