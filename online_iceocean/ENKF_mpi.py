@@ -186,10 +186,6 @@ if os.path.exists(obs_file):
     obs_error = 0.01 #variance of observed SIC                                                                                                                                                                                           
     xdiv = xT//20
     ydiv = yT//20
-
-    xindices,yindices = np.meshgrid(np.arange(0,xT,xdiv),np.arange(0,yT,ydiv))
-    xindices = xindices.ravel()
-    yindices = yindices.ravel()
     
     prior = prior.reshape(nmembers,nCat,xT*yT)
     obs = obs.ravel()
@@ -202,7 +198,7 @@ if os.path.exists(obs_file):
         with open(tile_fp, 'rb') as f:
             tiling = pickle.load(f)
 
-    Ntiles = np.arange(len(yindices))
+    Ntiles = np.arange(400)
     selected_variables = range(len(Ntiles))
     if COMM.rank == 0:
         splitted_jobs = split(selected_variables, COMM.size)
@@ -224,13 +220,14 @@ if os.path.exists(obs_file):
         posterior = np.zeros((nmembers,1,nCat+1,xT,yT))
         increments = np.zeros((nmembers,1,nCat,xT,yT))
         results = list(itertools.zip_longest(*results))
-        ix = 0
-        for r1 in results:
-            for r2 in r1:
-                if r2 is not None:
-                    posterior[:,0,1:,xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv] = r2[0]
-                    increments[:,0,:,xindices[ix]:xindices[ix]+xdiv,yindices[ix]:yindices[ix]+ydiv] = r2[1]
-                ix += 1
+        results = [x for xs in results for x in xs]
+
+        count = 0
+        for ix in range(0,xT,xdiv):
+            for jx in range(0,yT,ydiv):
+                posterior[:,0,1:,ix:ix+xdiv,jx:jx+ydiv] = results[count][0]
+                increments[:,0,:,ix:ix+xdiv,jx:jx+ydiv] = results[count][1]
+                count += 1
 
         posterior[:,0,0] = 1 - np.nansum(posterior[:,0,1:],1)
         posterior[posterior<0] = 0
