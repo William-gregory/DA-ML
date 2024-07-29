@@ -110,10 +110,11 @@ def preprocess(lon,lat,localization_radius,save):
 def Kfilter(prior,obs,W,trim,reshape_dims,obs_error=0.01):
     """                                                                                                                                                                                                                                  
     ensemble adjustment Kalman filter                                                                                                                                                                                                    
-    prior state variables of size: E, C, N                                                                                                                                                                                               
+    prior state variables of size: E, C, Nm                                                                                                                                                                                               
     E is the number of ensemble members                                                                                                                                                                                                  
     C is the number of model states (categories)                                                                                                                                                                                         
-    N is the number of grid points                                                                                                                                                                                                       
+    Nm is the number of model grid points   
+    N is the number of observation grid points
                                                                                                                                                                                                                                          
     returns: posterior state variables and increments                                                                                                                                                                                    
     """
