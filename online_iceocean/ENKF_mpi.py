@@ -129,17 +129,17 @@ def Kfilter(prior,obs,W,trim,reshape_dims,obs_error=0.01):
     else:
         valid_obs = np.atleast_1d(np.squeeze(np.where(~np.isnan(obs))))
         priorH = np.nansum(prior,1)[:,valid_obs]
-	innov = obs[valid_obs] - priorH
-        N = priorH.shape[1]
+        innov = obs[valid_obs] - priorH
+	N = priorH.shape[1]
 
         prior_anom = prior-np.nanmean(prior,0)
-        priorH_anom = priorH-np.nanmean(priorH,0)
-        Bm = W[:,valid_obs] * (np.einsum('ijk,il->jkl', prior_anom, priorH_anom) / (E - 1)) #covariance between categories & aggregate
-        Bo = W[valid_obs,valid_obs] * (np.cov(priorH.T) + np.eye(N)*obs_error) #covariance of aggregate
-        K = Bm @ np.linalg.inv(Bo) #Kalman gain                                                                                                                                                                       
+        B = W * (np.einsum('ijk,ijl->jkl', prior_anom, prior_anom) / (E - 1))
+        BH = B[:,valid_obs]
+        HBH = (B[:,valid_obs])[:,:,valid_obs]
+        K = np.array([BH[k].T @ np.linalg.inv(HBH[k] + np.eye(N)*obs_error) for k in range(C)])
         posterior = (prior + (K @ innov.T).transpose(2,0,1))[:,:,trim]
 
-	return postprocess(posterior.reshape(E,C,dX,dY)), (posterior-prior[:,:,trim]).reshape(E,C,dX,dY)
+        return postprocess(posterior.reshape(E,C,dX,dY)), (posterior-prior[:,:,trim]).reshape(E,C,dX,dY)
 
 def postprocess(x):
     """                                                                                                                                                                                                                                  
