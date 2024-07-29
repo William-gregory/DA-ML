@@ -169,7 +169,7 @@ y,m,d = np.genfromtxt('coupler.res',skip_header=1)[1,:3].astype(np.int32)
 date = datetime(y,m,d).strftime('%Y%m%d')
 
 ### FILES ###                                                                                                                                                                                                                            
-obs_file = '/gpfs/f5/gfdl_o/scratch/'+user+'/NTSIC/regrid_OM4/NSIDC0051_SEAICE_SPEAR1deg_'+date+'_v2.0.nc'
+obs_file = '/gpfs/f5/gfdl_o/scratch/William.Gregory/NTSIC/regrid_OM4/NSIDC0051_SEAICE_SPEAR1deg_'+date+'_v2.0.nc'
 if os.path.exists(obs_file):
     grid = xr.open_dataset('/ncrc/home2/William.Gregory/dart_manhattan/ice.static.nc')
     lon = grid.GEOLON.to_numpy()
@@ -183,7 +183,7 @@ if os.path.exists(obs_file):
 
     ### PARAMETERS ###                                                                                                                                                                                                                   
     localization_radius = 0.06 #radians                                                                                                                                                                                                  
-    tile_fp = '/gpfs/f5/gfdl_o/scratch/'+user+'/ENKF/tiles/Tiling_OM4grid_locrad'+str(localization_radius)+'.pkl'
+    tile_fp = '/gpfs/f5/gfdl_o/scratch/William.Gregory/ENKF/tiles/Tiling_OM4grid_locrad'+str(localization_radius)+'.pkl'
     obs_error = 0.01 #variance of observed SIC                                                                                                                                                                                           
     xdiv = xT//20
     ydiv = yT//20
