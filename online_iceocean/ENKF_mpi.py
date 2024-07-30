@@ -130,20 +130,19 @@ def Kfilter(prior,obs,W,trim,reshape_dims,obs_error=0.01):
         valid_obs = np.atleast_1d(np.squeeze(np.where(~np.isnan(obs))))
         
         prior_mean = np.mean(prior,0)
-        prior_anom = prior-prior_mean
         priorH = np.sum(prior,1)[:,valid_obs]
         priorH_mean = np.mean(priorH,0)
-        priorH_anom = priorH - priorH_mean
 	    
         innov = obs[valid_obs] - priorH_mean #bias of ensemble mean
         innovE = obs[valid_obs] - priorH #bias of each ensemble member
-        N = priorH.shape[1]
-        
-        Bm = W[:,valid_obs] * (np.einsum('ijk,il->jkl', prior_anom, priorH_anom) / (E - 1))
+	Nm = prior.shape[1]
+        No = priorH.shape[1]
+
+	Bm = np.array([W[:,valid_obs] * np.cov(prior[:,k].T,priorH.T)[:Nm,Nm:] for k in range(C)])
         Bo = W[np.ix_(valid_obs,valid_obs)] * np.cov(priorH.T)
-        Bo_i = np.linalg.inv(Bo + np.eye(N)*obs_error)
+        Bo_i = np.linalg.inv(Bo + np.eye(No)*obs_error)
 	
-        increments = np.zeros((E,C,prior.shape[2]))
+        increments = np.zeros((E,C,Nm))
         for k in range(C):
             K = Bm[k] @ Bo_i #Kalman gain of ice category k
             posterior_mean = prior_mean[k] + np.dot(K, innov.T)
