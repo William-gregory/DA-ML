@@ -14,9 +14,9 @@ if COMM.rank == 0:
     print('Starting DA script:',datetime.now(),flush=True)
 
 def split(container, count):
-    """                                                                                                                                                                                                                                  
-    function for dividing the number of tasks (container)                                                                                                                                                                                
-    across the number of available compute nodes (count)                                                                                                                                                                                 
+    """
+    function for dividing the number of tasks (container)
+    across the number of available compute nodes (count)
     """
     return [container[_i::count] for _i in range(count)]
 
@@ -33,7 +33,7 @@ def enthalpy_ice(zTin,zSin):
     MIU = 0.054
     Tm = -MIU*zSin
     return cp_wtr*zTin + cp_ice*(zTin - Tm) + (cp_wtr - cp_ice)*Tm*np.log(zTin/Tm) + Lfresh*(Tm/zTin-1)
-  
+
 def liquidus_temperature_mush(Sbr):
     """
     compute liquidus temp of ice based on salinity of mushy ice. 
@@ -57,7 +57,7 @@ def liquidus_temperature_mush(Sbr):
     M2_liq = az2_liq
     N2_liq = -az2p_liq
     O2_liq = -bz2_liq / az2_liq
-    
+
     if Sbr<=Sb_liq:
         t_high = 1.0
     else:
@@ -66,13 +66,13 @@ def liquidus_temperature_mush(Sbr):
     return ((Sbr / (M1_liq + N1_liq * Sbr)) + O1_liq) * t_high + ((Sbr / (M2_liq + N2_liq * Sbr)) + O2_liq) * (1.0 - t_high)
 
 def preprocess(lon,lat,localization_radius,save):
-    """                                                                                                                                                                                                                                  
-    pad the domain of the prior state variables and observations                                                                                                                                                                         
-    to appropriately handle the chosen localization distance.                                                                                                                                                                            
-    Then compute the localization matrix for this padded domain.                                                                                                                                                                         
-                                                                                                                                                                                                                                         
-    Return the padded state variables, observations and                                                                                                                                                                                  
-    localization matrix, and the indices of the original (unpadded) domain                                                                                                                                                               
+    """
+    pad the domain of the prior state variables and observations
+    to appropriately handle the chosen localization distance.
+    Then compute the localization matrix for this padded domain.
+
+    Return the padded state variables, observations and
+    localization matrix, and the indices of the original (unpadded) domain 
     """
     xT,yT = lon.shape
     xdiv = xT//20
@@ -99,7 +99,7 @@ def preprocess(lon,lat,localization_radius,save):
             W[cond2] = ratio[cond2]**5 / 12 - ratio[cond2]**4 / 2 + 5 * ratio[cond2]**3 / 8 + 5 * ratio[cond2]**2 / 3 - 5 * ratio[cond2] + 4 - 2 / 3 / ratio[cond2]
             W[D==0] = 1
             W[D>localization_radius] = 0
-
+                        
             tiling['tile'+str(count)+'_locMatrix'] = W
             tiling['tile'+str(count)+'_halo'] = halo
             tiling['tile'+str(count)+'_trim'] = trim
@@ -108,15 +108,14 @@ def preprocess(lon,lat,localization_radius,save):
         pickle.dump(tiling, f)
 
 def Kfilter(prior,obs,W,trim,reshape_dims,obs_error=0.01):
-    """                                                                                                                                                                                                                                  
-    ensemble adjustment Kalman filter                                                                                                                                                                                                    
-    prior state variables of size: E, C, Nm                                                                                                                                                                                               
-    E is the number of ensemble members                                                                                                                                                                                                  
-    C is the number of model states (categories)                                                                                                                                                                                         
-    Nm is the number of model grid points   
-    N is the number of observation grid points
-                                                                                                                                                                                                                                         
-    returns: posterior state variables and increments                                                                                                                                                                                    
+    """
+    ensemble adjustment Kalman filter
+    prior state variables of size: E, C, N
+    E is the number of ensemble members
+    C is the number of model states (categories)
+    N is the number of grid points
+
+    returns: posterior state variables and increments
     """
 
     E,C = prior.shape[0], prior.shape[1]
@@ -129,38 +128,38 @@ def Kfilter(prior,obs,W,trim,reshape_dims,obs_error=0.01):
         return prior[:,:,trim].reshape(E,C,dX,dY),np.zeros((E,C,dX,dY))
     else:
         valid_obs = np.atleast_1d(np.squeeze(np.where(~np.isnan(obs))))
-
-	prior_mean = np.mean(prior,0)
-	prior_anom = prior-prior_mean
+        
+        prior_mean = np.mean(prior,0)
+        prior_anom = prior-prior_mean
         priorH = np.sum(prior,1)[:,valid_obs]
-	priorH_mean = np.mean(priorH,0)
+        priorH_mean = np.mean(priorH,0)
         priorH_anom = priorH - priorH_mean
 	    
         innov = obs[valid_obs] - priorH_mean #bias of ensemble mean
         innovE = obs[valid_obs] - priorH #bias of each ensemble member
-	N = priorH.shape[1]
-
-	Bm = W[:,valid_obs] * (np.einsum('ijk,il->jkl', prior_anom, priorH_anom) / (E - 1))
+        N = priorH.shape[1]
+        
+        Bm = W[:,valid_obs] * (np.einsum('ijk,il->jkl', prior_anom, priorH_anom) / (E - 1))
         Bo = W[np.ix_(valid_obs,valid_obs)] * np.cov(priorH.T)
         Bo_i = np.linalg.inv(Bo + np.eye(N)*obs_error)
 	
-	increments = np.zeros((E,C,prior.shape[2]))
-	for k in range(C):
-	    K = Bm[k] @ Bo_i #Kalman gain of ice category k
+        increments = np.zeros((E,C,prior.shape[2]))
+        for k in range(C):
+            K = Bm[k] @ Bo_i #Kalman gain of ice category k
             posterior_mean = prior_mean[k] + np.dot(K, innov.T)
             increments[:,k] = np.dot(K, innovE.T).T + posterior_mean - prior[:,k]
 	    
         posterior = (prior + increments)[:,:,trim]
-
+        
         return postprocess(posterior.reshape(E,C,dX,dY)), increments[:,:,trim].reshape(E,C,dX,dY)
 
 def postprocess(x):
-    """                                                                                                                                                                                                                                  
-    post-processing to ensure updated sea ice concentration                                                                                                                                                                              
-    is bounded between 0 and 1.                                                                                                                                                                                                          
+    """
+    post-processing to ensure updated sea ice concentration
+    is bounded between 0 and 1.
     """
     x = x.transpose(1,0,2,3)
-    x[x<0] = 0
+    x[x<0] = 0    
     SIC = np.nansum(x,0)
     high = SIC>1
     ratio = 1/SIC[high]
@@ -176,30 +175,30 @@ if COMM.rank == 0:
     if os.path.exists(savepath)==False:
         os.makedirs(savepath)
 
-### CURRENT MODEL TIME ###                                                                                                                                                                                                               
+### CURRENT MODEL TIME ###
 y,m,d = np.genfromtxt('coupler.res',skip_header=1)[1,:3].astype(np.int32)
 date = datetime(y,m,d).strftime('%Y%m%d')
 
-### FILES ###                                                                                                                                                                                                                            
+### FILES ###
 obs_file = '/gpfs/f5/gfdl_o/scratch/William.Gregory/NTSIC/regrid_OM4/NSIDC0051_SEAICE_SPEAR1deg_'+date+'_v2.0.nc'
 if os.path.exists(obs_file):
     grid = xr.open_dataset('/ncrc/home2/William.Gregory/dart_manhattan/ice.static.nc')
     lon = grid.GEOLON.to_numpy()
     lat = grid.GEOLAT.to_numpy()
-    ice_restarts = sorted(glob.glob('ice_model.res*')) #prior model states (RESTART files)                                                                                                                                               
-    ocn_restarts = sorted(glob.glob('MOM.res.*')) #get ocean states for salinity-dependent freezing point                                                                                                                                
+    ice_restarts = sorted(glob.glob('ice_model.res*')) #prior model states (RESTART files)
+    ocn_restarts = sorted(glob.glob('MOM.res.*')) #get ocean states for salinity-dependent freezing point
     prior = xr.open_mfdataset(ice_restarts,concat_dim='ens',combine='nested',decode_times=False).part_size.to_numpy()[:,0,1:]
     prior[np.isnan(prior)] = 0
     obs = xr.open_dataset(obs_file).sic.to_numpy()
     nmembers,nCat,xT,yT = prior.shape
 
-    ### PARAMETERS ###                                                                                                                                                                                                                   
-    localization_radius = 0.06 #radians                                                                                                                                                                                                  
+    ### PARAMETERS ###
+    localization_radius = 0.06 #radians
     tile_fp = '/gpfs/f5/gfdl_o/scratch/William.Gregory/ENKF/tiles/Tiling_OM4grid_locrad'+str(localization_radius)+'.pkl'
-    obs_error = 0.01 #variance of observed SIC                                                                                                                                                                                           
+    obs_error = 0.01 #variance of observed SIC
     xdiv = xT//20
     ydiv = yT//20
-    
+
     prior = prior.reshape(nmembers,nCat,xT*yT)
     obs = obs.ravel()
     if os.path.exists(tile_fp):
@@ -224,17 +223,17 @@ if os.path.exists(obs_file):
         tile = Ntiles[ix]
         prior_tile = prior[:,:,tiling['tile'+str(tile)+'_halo']]
         obs_tile = obs[tiling['tile'+str(tile)+'_halo']]
-
+            
         outputs = Kfilter(prior_tile,obs_tile,tiling['tile'+str(tile)+'_locMatrix'],tiling['tile'+str(tile)+'_trim'],[xdiv,ydiv],obs_error=obs_error)
         results.append(outputs)
+
     results = COMM.gather(results, root=0)
-    
-    if COMM.rank == 0: #tell the master node to compile the results into their own respective arrays and map back to the 2D domain
+    if COMM.rank == 0:
         posterior = np.zeros((nmembers,1,nCat+1,xT,yT))
         increments = np.zeros((nmembers,1,nCat,xT,yT))
         results = list(itertools.zip_longest(*results))
         results = [x for xs in results for x in xs]
-
+        
         count = 0
         for ix in range(0,xT,xdiv):
             for jx in range(0,yT,ydiv):
@@ -245,8 +244,8 @@ if os.path.exists(obs_file):
         posterior[:,0,0] = 1 - np.nansum(posterior[:,0,1:],1)
         posterior[posterior<0] = 0
         posterior[posterior>1] = 1
-
-        ### SAVE INCREMENTS ###                                                                                                                                                                                                          
+        
+        ### SAVE INCREMENTS ###
         ds = xr.Dataset(data_vars=dict(part_size=(['members','time', 'ct', 'yT', 'xT'], increments)), coords=dict(yT=grid['yT'], xT=grid['xT']))
         ds.part_size.attrs['long_name'] = 'category_sea_ice_concentration_increments'
         ds.part_size.attrs['units'] = 'area_fraction'
@@ -269,40 +268,40 @@ if os.path.exists(obs_file):
             SSS = xr.open_dataset(ocn_restarts[member],decode_times=False).Salt.to_numpy()[:,0]
             prior_m = fr.part_size.to_numpy()
             post_m = posterior[member]
-    
+
             cond1 = np.where((prior_m[:,1:]<=0) & (post_m[:,1:]>0)) #where original state was ice-free, but EnKF has added ice
             cond2 = np.where((prior_m[:,1:]>0) & (post_m[:,1:]<=0)) #where original state contained ice, but EnKF has made ice-free
-        
+
             h_ice = fr.h_ice.to_numpy()
             h_ice[cond1] = i_thick[cond1]
             h_ice[cond2] = 0
-    
+
             h_snow = fr.h_snow.to_numpy()
             h_snow[cond1] = 0
             h_snow[cond2] = 0
-    
+
             enth_ice = fr.enth_ice.to_numpy()
             for layer in range(4):
                 enth_ice[:,layer][cond1] = qi_new
                 enth_ice[:,layer][cond2] = 0
-    
+
             enth_snow = fr.enth_snow.to_numpy()
             enth_snow[0][cond1] = 0
             enth_snow[0][cond2] = 0
-    
+
             T_skin = fr.T_skin.to_numpy()
             T_skin[cond1] = Ti
             T_skin[cond2] = np.maximum(-0.0539*(np.tile(SSS[:,None],(1,nCat,1,1))[cond2]),-2.)
-    
+
             sal_ice = fr.sal_ice.to_numpy()
             for layer in range(4):
                 sal_ice[:,layer][cond1] = Si_new
                 sal_ice[:,layer][cond2] = 0
-    
+
             h_pond = fr.h_pond.to_numpy()
             h_pond[cond1] = 0
             h_pond[cond2] = 0
-    
+
             fr.part_size.loc[:] = post_m
             fr.h_ice.loc[:] = h_ice
             fr.h_snow.loc[:] = h_snow
@@ -311,7 +310,7 @@ if os.path.exists(obs_file):
             fr.enth_snow.loc[:] = enth_snow
             fr.T_skin.loc[:] = T_skin
             fr.sal_ice.loc[:] = sal_ice
-    
+
             fr.to_netcdf(file,mode='a')
         print('Finished DA:',datetime.now(),flush=True)
 else:
