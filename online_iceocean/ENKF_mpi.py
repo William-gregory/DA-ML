@@ -138,13 +138,13 @@ def Kfilter(prior,obs,W,trim,reshape_dims,obs_error=0.01):
 	Nm = prior.shape[2]
         No = priorH.shape[1]
 
-	Bm = np.array([W[:,valid_obs] * np.cov(prior[:,k].T,priorH.T)[:Nm,Nm:] for k in range(C)])
         Bo = W[np.ix_(valid_obs,valid_obs)] * np.cov(priorH.T)
         Bo_i = np.linalg.inv(Bo + np.eye(No)*obs_error)
 	
-        increments = np.zeros((E,C,Nm))
+	increments = np.zeros((E,C,Nm))
         for k in range(C):
-            K = Bm[k] @ Bo_i #Kalman gain of ice category k
+	    Bm = W[:,valid_obs] * np.cov(prior[:,k].T,priorH.T)[:Nm,Nm:]
+            K = Bm @ Bo_i #Kalman gain of ice category k
             posterior_mean = prior_mean[k] + np.dot(K, innov.T)
             increments[:,k] = np.dot(K, innovE.T).T + posterior_mean - prior[:,k]
 	    
