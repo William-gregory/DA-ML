@@ -207,6 +207,7 @@ if os.path.exists(obs_file):
     else:
         if COMM.rank == 0:
             preprocess(lon,lat,localization_radius,tile_fp)
+	COMM.Barrier()
         with open(tile_fp, 'rb') as f:
             tiling = pickle.load(f)
 
