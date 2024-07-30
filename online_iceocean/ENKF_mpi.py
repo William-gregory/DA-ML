@@ -136,7 +136,7 @@ def Kfilter(prior,obs,W,trim,reshape_dims,obs_error=0.01):
         prior_anom = prior-np.nanmean(prior,0)
         B = W * (np.einsum('ijk,ijl->jkl', prior_anom, prior_anom) / (E - 1))
         BH = B[:,valid_obs]
-        HBH = (B[:,valid_obs])[:,:,valid_obs]
+        HBH = B[np.ix_(np.arange(C),valid_obs,valid_obs)]
         K = np.array([BH[k].T @ np.linalg.inv(HBH[k] + np.eye(N)*obs_error) for k in range(C)])
         posterior = (prior + (K @ innov.T).transpose(2,0,1))[:,:,trim]
 
