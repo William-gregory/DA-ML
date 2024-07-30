@@ -135,7 +135,7 @@ def Kfilter(prior,obs,W,trim,reshape_dims,obs_error=0.01):
 	    
         innov = obs[valid_obs] - priorH_mean #bias of ensemble mean
         innovE = obs[valid_obs] - priorH #bias of each ensemble member
-	Nm = prior.shape[1]
+	Nm = prior.shape[2]
         No = priorH.shape[1]
 
 	Bm = np.array([W[:,valid_obs] * np.cov(prior[:,k].T,priorH.T)[:Nm,Nm:] for k in range(C)])
