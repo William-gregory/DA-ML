@@ -129,18 +129,30 @@ def Kfilter(prior,obs,W,trim,reshape_dims,obs_error=0.01):
         return prior[:,:,trim].reshape(E,C,dX,dY),np.zeros((E,C,dX,dY))
     else:
         valid_obs = np.atleast_1d(np.squeeze(np.where(~np.isnan(obs))))
-        priorH = np.nansum(prior,1)[:,valid_obs]
-        innov = obs[valid_obs] - priorH
+
+	prior_mean = np.mean(prior,0)
+	prior_anom = prior-prior_mean
+        priorH = np.sum(prior,1)[:,valid_obs]
+	priorH_mean = np.mean(priorH,0)
+        priorH_anom = priorH - priorH_mean
+	    
+        innov = obs[valid_obs] - priorH_mean #bias of ensemble mean
+        innovE = obs[valid_obs] - priorH #bias of each ensemble member
 	N = priorH.shape[1]
 
-        prior_anom = prior-np.nanmean(prior,0)
-        B = W * (np.einsum('ijk,ijl->jkl', prior_anom, prior_anom) / (E - 1))
-        BH = B[:,valid_obs]
-        HBH = B[np.ix_(np.arange(C),valid_obs,valid_obs)]
-        K = np.array([BH[k].T @ np.linalg.inv(HBH[k] + np.eye(N)*obs_error) for k in range(C)])
-        posterior = (prior + (K @ innov.T).transpose(2,0,1))[:,:,trim]
+	Bm = W[:,valid_obs] * (np.einsum('ijk,il->jkl', prior_anom, priorH_anom) / (E - 1))
+        Bo = W[np.ix_(valid_obs,valid_obs)] * np.cov(priorH.T)
+        Bo_i = np.linalg.inv(Bo + np.eye(N)*obs_error)
+	
+	increments = np.zeros((E,C,prior.shape[2]))
+	for k in range(C):
+	    K = Bm[k] @ Bo_i #Kalman gain of ice category k
+            posterior_mean = prior_mean[k] + np.dot(K, innov.T)
+            increments[:,k] = np.dot(K, innovE.T).T + posterior_mean - prior[:,k]
+	    
+        posterior = (prior + increments)[:,:,trim]
 
-        return postprocess(posterior.reshape(E,C,dX,dY)), (posterior-prior[:,:,trim]).reshape(E,C,dX,dY)
+        return postprocess(posterior.reshape(E,C,dX,dY)), increments[:,:,trim].reshape(E,C,dX,dY)
 
 def postprocess(x):
     """                                                                                                                                                                                                                                  
