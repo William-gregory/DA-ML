@@ -146,7 +146,7 @@ def Kfilter(prior,obs,W,trim,reshape_dims,obs_error=0.01):
 	    Bm = W[:,valid_obs] * np.cov(prior[:,k].T,priorH.T)[:Nm,Nm:]
             K = Bm @ Bo_i #Kalman gain of ice category k
             posterior_mean = prior_mean[k] + np.dot(K, innov.T)
-            posterior[:,k] = np.dot(K, innovE.T).T + posterior_mean
+            posterior[:,k] = posterior_mean + np.dot(K, innovE.T).T
 	    
         increments = posterior - prior
         
