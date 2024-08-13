@@ -160,7 +160,7 @@ for h,hem in enumerate(hemispheres):
         obs_latr = obs_lat.ravel()
         
         for m in range(len(obs_sic)):
-            if globe.is_ocean(obs_latr[m],obs_lonr[m]):
+            if (globe.is_ocean(obs_latr[m],obs_lonr[m])) & (~np.isnan(obs_sic[m])):
                 priorH = np.sum(prior[:,:,grid_info['cell'+str(m)+'_trim']],1)
                 priorH_mean = np.mean(priorH)
                 priorH_var = np.var(priorH,ddof=1)
