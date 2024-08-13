@@ -172,12 +172,12 @@ for h,hem in enumerate(hemispheres):
                     for k in range(nCat):
                         if prior[:,k,grid_info['cell'+str(m)+'_halo']].shape[1] == 0:
                             prior_cov = np.cov(prior[:,k,grid_info['cell'+str(m)+'_trim']],priorH)[0,1]
-                            ens_increment = np.array([(prior_cov/priorH_var)*obs_inc[N] for N in range(nmembers)])
+                            ens_increment = (prior_cov/priorH_var) * obs_inc
                             prior[:,k,grid_info['cell'+str(m)+'_trim']] = prior[:,k,grid_info['cell'+str(m)+'_trim']] + ens_increment
                         else:
                             prior_cov = grid_info['cell'+str(m)+'_locMatrix'] * np.cov(prior[:,k,grid_info['cell'+str(m)+'_halo']].T,priorH)[:-1,-1]
-                            ens_increment = np.array([(prior_cov/priorH_var)*obs_inc[N] for N in range(nmembers)])
-                            prior[:,k,grid_info['cell'+str(m)+'_halo']] = prior[:,k,grid_info['cell'+str(m)+'_halo']] + ens_increment
+                            ens_increment = (prior_cov/priorH_var)[:,np.newaxis] * obs_inc[np.newaxis,:]
+                            prior[:,k,grid_info['cell'+str(m)+'_halo']] = prior[:,k,grid_info['cell'+str(m)+'_halo']] + ens_increment.T
     results.append(prior - prior_temp)
     
 increments = np.nansum(results,0).reshape(nmembers,1,nCat,xT,yT)
