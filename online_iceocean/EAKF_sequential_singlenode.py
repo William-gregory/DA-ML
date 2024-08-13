@@ -192,8 +192,8 @@ ds = xr.Dataset(data_vars=dict(part_size=(['members','time', 'ct', 'yT', 'xT'], 
 ds.part_size.attrs['long_name'] = 'category_sea_ice_concentration_increments'
 ds.part_size.attrs['units'] = 'area_fraction'
 ds['time'] = [date]
-ds.mean('members').to_netcdf(savepath+date+'.EnKF_increment.ens_mean.nc')
-ds.to_netcdf(savepath+date+'.EnKF_increment.nc')
+ds.mean('members').to_netcdf(savepath+date+'.EAKF_increment.ens_mean.nc')
+ds.to_netcdf(savepath+date+'.EAKF_increment.nc')
 
 ### UPDATE SEA ICE RESTARTS & CREATE NEW SEA ICE PROFILES ###
 rho_ice = 905.
