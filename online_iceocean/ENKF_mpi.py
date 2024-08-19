@@ -152,13 +152,25 @@ def Kfilter(prior,obs,W,trim,reshape_dims,obs_error=0.01):
         
         return postprocess(posterior[:,:,trim].reshape(E,C,dX,dY)), increments[:,:,trim].reshape(E,C,dX,dY)
 
+def adjust_negatives(X):
+    negatives = X<0
+    dists = np.abs(X*negatives).sum(axis=0)
+    positives = np.sum(X > 0, axis=0)
+    positives[positives == 0] = 1
+    subtract_values = dists/positives
+    subtract_values_expanded = np.expand_dims(subtract_values, axis=0)
+    X_adjusted = X - (X > 0) * subtract_values_expanded
+    X_adjusted[negatives] = 0
+    return X_adjusted
+	
 def postprocess(x):
     """
     post-processing to ensure updated sea ice concentration
     is bounded between 0 and 1.
     """
     x = x.transpose(1,0,2,3)
-    x[x<0] = 0    
+    while np.any(x<0):
+        x = adjust_negatives(x)
     SIC = np.nansum(x,0)
     high = SIC>1
     ratio = 1/SIC[high]
