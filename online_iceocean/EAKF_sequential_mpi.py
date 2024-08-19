@@ -157,7 +157,7 @@ prior = xr.open_mfdataset(ice_restarts,concat_dim='ens',combine='nested',decode_
 prior[np.isnan(prior)] = 0
 nmembers,nCat,xT,yT = prior.shape
 if COMM.rank == 0:
-  prior_original = np.copy(prior)
+    prior_original = np.copy(prior)
 prior = prior.reshape(nmembers,nCat,xT*yT)
 ### PARAMETERS ###
 localization_radius = 0.06 #radians
