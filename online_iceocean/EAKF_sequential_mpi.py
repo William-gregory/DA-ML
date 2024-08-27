@@ -1,3 +1,13 @@
+"""
+This code is written to do sea ice data assimilation using the Ensemble Adjustment Kalman Filter (EAKF), after Anderson, 2003.
+The current implementation assimilates NSIDC satellite observations of sea ice concentration and updates subgrid category sea ice
+concentrations in the numerical model. The observations are assimilated on their native grid.
+
+The code also applies a series of post-processing steps in case the DA has added or added new sea ice or removed all ice.
+
+Author: William Gregory
+"""
+
 import os
 import glob
 import numpy as np
