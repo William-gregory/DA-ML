@@ -207,7 +207,7 @@ popd
 
 # ---------------- call make on the main Makefile
 
-make  REPRO=on OPENMP=on NETCDF=3 LDFLAGS="-L/gpfs/f5/gfdl_o/scratch/William.Gregory/FTorch/src/build/torch_v2p1_Inteloneapi2023p2p0/lib64 -lftorch" fms_SPEAR_Q_nonsymMOM6_OTA_FTorch.x
+make  REPRO=on OPENMP=on NETCDF=3 LDFLAGS="-L/opt/intel/oneapi/compiler/2023.2.0/linux/compiler/lib/intel64 -liomp5 -L/gpfs/f5/gfdl_o/scratch/William.Gregory/FTorch/src/build/torch_v2p1_Inteloneapi2023p2p0/lib64 -lftorch" fms_SPEAR_Q_nonsymMOM6_OTA_FTorch.x
 
 if ( $status == 0 ) then
   if ( $?NiNaC_LVL ) then
