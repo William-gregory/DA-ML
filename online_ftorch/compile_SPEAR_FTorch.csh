@@ -187,7 +187,7 @@ list_paths -l -o $bld_dir/sis2/pathnames_sis2 $src_dir/SIS2/config_src/dynamic $
 cd $bld_dir
 pushd sis2
 mkmf -m Makefile -a $src_dir -b $bld_dir -p libsis2.a -t $mkmf_template -c "-DINTERNAL_FILE_NML -DNONSYMMETRIC_MEMORY_" -o "-I$bld_dir/ice_param -I$bld_dir/icebergs -I$bld_dir/mom6 -I$bld_dir/FMS -I/gpfs/f5/gfdl_o/scratch/William.Gr\
-egory/Ftorch/src/build/torch_v2p1_Inteloneapi2023p2p0/include/ftorch" -IFMS/include -IFMS/mpp/include -IMOM6/pkg/CVMix-src/include -IMOM6/src/framework $bld_dir/sis2/pathnames_sis2
+egory/FTorch/src/build/torch_v2p1_Inteloneapi2023p2p0/include/ftorch" -IFMS/include -IFMS/mpp/include -IMOM6/pkg/CVMix-src/include -IMOM6/src/framework $bld_dir/sis2/pathnames_sis2
 popd
 
 mkdir -p $bld_dir/icebergs
@@ -207,7 +207,7 @@ popd
 
 # ---------------- call make on the main Makefile
 
-make  REPRO=on OPENMP=on NETCDF=3 LDFLAGS="-L/gpfs/f5/gfdl_o/scratch/William.Gregory/Ftorch/src/build/torch_v2p1_Inteloneapi2023p2p0/lib64 -lftorch" fms_SPEAR_Q_nonsymMOM6_OTA_FTorch.x
+make  REPRO=on OPENMP=on NETCDF=3 LDFLAGS="-L/gpfs/f5/gfdl_o/scratch/William.Gregory/FTorch/src/build/torch_v2p1_Inteloneapi2023p2p0/lib64 -lftorch" fms_SPEAR_Q_nonsymMOM6_OTA_FTorch.x
 
 if ( $status == 0 ) then
   if ( $?NiNaC_LVL ) then
