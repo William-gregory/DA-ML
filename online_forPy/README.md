@@ -7,7 +7,7 @@ Specifically, see source code:
 - [SIS_slow_thermo.F90](https://github.com/William-gregory/SIS2/tree/forpy_SPEAR/src/SIS_slow_thermo.F90)
   
   The update to category sea ice concentrations happens after the thermodynamic update to sea ice
-- [SIS_G23_CNN.F90](https://github.com/William-gregory/SIS2/tree/forpy_SPEAR/src/SIS_ML.F90)
+- [SIS_ML.F90](https://github.com/William-gregory/SIS2/tree/forpy_SPEAR/src/SIS_ML.F90)
   
   State variables are collated into an input array for the network. Part_size is then updated based on the predicted correction, and sea ice variables are subequently updated
   depending on whether ice has been added/removed to a given category
