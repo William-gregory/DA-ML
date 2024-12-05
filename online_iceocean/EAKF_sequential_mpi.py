@@ -259,7 +259,7 @@ if COMM.rank == 0:
     Si_new = 5 #salinity of mushy ice
     Ti = min(liquidus_temperature_mush(Si_new/phi_init),-0.1)
     qi_new = enthalpy_ice(Ti, Si_new)
-    hlim = [1.0e-10, 0.1, 0.3, 0.7, 1.1, 1.5]
+    hlim = [1.0e-10, 0.1, 0.3, 0.7, 1.1, 2.9]
     hmid = np.array([0.5*(hlim[n]+hlim[n+1]) for n in range(nCat)])
     i_thick = np.tile((hmid*rho_ice)[None,:,None,None],(1,1,xT,yT))
     for member,file in enumerate(ice_restarts):
