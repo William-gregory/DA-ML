@@ -20,4 +20,4 @@ Example scripts of implementing the CNN into SIS2, via the FTorch Fortran-Python
 
 ### Additional online implementation
 
-A pure fortran implementation of the ML bias correction can also be found my [forked SIS2 repo](https://github.com/William-gregory/SIS2/blob/ML_pure_fortran/src/SIS_ML.F90)
+A pure fortran implementation of the ML bias correction can also be found at my [forked SIS2 repo](https://github.com/William-gregory/SIS2/blob/ML_pure_fortran/src/SIS_ML.F90)
