@@ -10,6 +10,14 @@ The `offline_learning` folder contains code and data relating to the article [Gr
 
 The `online_iceocean` folder contains example scripts of how to implement the trained CNN into SPEAR ice-ocean simulations, by updating the sea ice restart files, as a way to correct short-forecasts. This methodology is outlined in the article [Gregory et al., 2024](https://doi.org/10.1029/2023GL106776).
 
-### Online forPy
+### Online forpy
 
 Example scripts of implementing the CNN into SIS2, via the Forpy Fortran-Python interface. This approach allows the CNN to be called at the model timestep, rather than the approach above, which relies on updating the model restart files. Using Forpy to implement a CNN into MOM6 is outlined in [Zhang et al., 2023](https://agupubs.onlinelibrary.wiley.com/doi/pdfdirect/10.1029/2023MS003697).
+
+### Online ftorch
+
+Example scripts of implementing the CNN into SIS2, via the FTorch Fortran-Python interface. This approach also allows the CNN to be called at the model timestep. FTorch is developed by [ICCS](https://github.com/Cambridge-ICCS/FTorch), and calls PyTorch's C++ from fortran. This current implementation with SIS2 needs work, as the predictions from the second network are garbage. 
+
+### Additional online implementation
+
+A pure fortran implementation of the ML bias correction can also be found my [forked SIS2 repo](https://github.com/William-gregory/SIS2/blob/ML_pure_fortran/src/SIS_ML.F90)
