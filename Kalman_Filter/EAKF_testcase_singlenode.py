@@ -1,3 +1,11 @@
+"""
+Code to test the implementation of the Ensemble Adjustment Kalman Filter (Anderson, 2003). 
+This will assimimlate satellite observations of sea ice concentration in both the Arctic and Antarctic,
+and then write out the increments (corrections) that are applied to each sub-grid sea ice concentration category
+
+Author: Will Gregory
+"""
+
 import os
 import glob
 import numpy as np
@@ -8,51 +16,6 @@ from datetime import datetime,timedelta
 from sklearn.metrics.pairwise import haversine_distances
 
 print('Starting DA script:',datetime.now(),flush=True)
-
-def enthalpy_ice(zTin,zSin):
-    """
-    compute enthalpy of ice based on liquidus temperature
-    and salinity of mushy ice. Used to create a new 'sea ice
-    profile' in the case the EnKF adds ice to grid cell which 
-    was previously ice-free.
-    """
-    cp_wtr  = 4200
-    cp_ice  = 2100
-    Lfresh  = 3.34e5
-    MIU = 0.054
-    Tm = -MIU*zSin
-    return cp_wtr*zTin + cp_ice*(zTin - Tm) + (cp_wtr - cp_ice)*Tm*np.log(zTin/Tm) + Lfresh*(Tm/zTin-1)
-
-def liquidus_temperature_mush(Sbr):
-    """
-    compute liquidus temp of ice based on salinity of mushy ice. 
-    Used to create a new 'sea ice profile' in the case the EnKF adds
-    ice to grid cell which was previously ice-free.
-    """
-    Sb_liq =  123.66702800276086
-    c1      = 1.0
-    c1000   = 1000
-    az1_liq = -18.48
-    bz1_liq =   0.0
-    az2_liq = -10.3085
-    bz2_liq =  62.4
-    az1p_liq = az1_liq / c1000
-    bz1p_liq = bz1_liq / c1000
-    az2p_liq = az2_liq / c1000
-    bz2p_liq = bz2_liq / c1000
-    M1_liq = az1_liq
-    N1_liq = -az1p_liq
-    O1_liq = -bz1_liq / az1_liq
-    M2_liq = az2_liq
-    N2_liq = -az2p_liq
-    O2_liq = -bz2_liq / az2_liq
-
-    if Sbr<=Sb_liq:
-        t_high = 1.0
-    else:
-        t_high = 0.0
-
-    return ((Sbr / (M1_liq + N1_liq * Sbr)) + O1_liq) * t_high + ((Sbr / (M2_liq + N2_liq * Sbr)) + O2_liq) * (1.0 - t_high)
 
 def preprocess(lon_mod,lat_mod,lon_obs,lat_obs,localization_radius=0.06,save='./grid_locs.pkl'):
     """
@@ -120,32 +83,23 @@ def postprocess(x):
         x[CAT,high] = x[CAT,high]*ratio
     return x.transpose(1,0,2,3)
 
-### PATHS ###
-user = os.popen('whoami').read().split('\n')[0]
-experiment = os.getcwd().split('/')[-2].split('.')[0]
-savepath = '/gpfs/f5/gfdl_o/scratch/'+user+'/ENKF/increments/'+experiment+'/'
-if os.path.exists(savepath)==False:
-    os.makedirs(savepath)
-
-### CURRENT MODEL TIME ###
-y,m,d = np.genfromtxt('coupler.res',skip_header=1)[1,:3].astype(np.int32)
-date = datetime(y,m,d).strftime('%Y%m%d')
+date = str(input('Please provide a date to assimilate observations in the format %Y%m%d:\n'))
 
 ### FILES ###
-obs_file_NH = '/gpfs/f5/gfdl_o/scratch/William.Gregory/NTSIC/raw_data/NH/NSIDC0051_SEAICE_PS_N25km_'+date+'_v2.0.nc'
-obs_file_SH = '/gpfs/f5/gfdl_o/scratch/William.Gregory/NTSIC/raw_data/SH/NSIDC0051_SEAICE_PS_S25km_'+date+'_v2.0.nc'
+obs_file_NH = 'NSIDC0051_SEAICE_PS_N25km_'+date+'_v2.0.nc'
+obs_file_SH = 'NSIDC0051_SEAICE_PS_S25km_'+date+'_v2.0.nc'
 hemispheres = [obs_file_NH,obs_file_SH]
 hem_labels = ['N','S']
-grid = xr.open_dataset('/ncrc/home2/William.Gregory/dart_manhattan/ice.static.nc')
+grid = xr.open_dataset('ice.static.nc') #model grid
 lon = grid.GEOLON.to_numpy()
 lat = grid.GEOLAT.to_numpy()
 ice_restarts = sorted(glob.glob('ice_model.res*')) #prior model states (RESTART files)
-ocn_restarts = sorted(glob.glob('MOM.res.*')) #get ocean states for salinity-dependent freezing point
-prior = xr.open_mfdataset(ice_restarts,concat_dim='ens',combine='nested',decode_times=False).part_size.to_numpy()[:,0,1:]
+prior = xr.open_mfdataset(ice_restarts,concat_dim='ens',combine='nested',decode_times=False).part_size.to_numpy()[:,0,1:] #first index of the SIS2 model is open-water fraction
 prior[np.isnan(prior)] = 0
-nmembers,nCat,xT,yT = prior.shape
+nmembers,nCat,xT,yT = prior.shape #nCat is the number of sub-grid categories (each of which will be updated via DA)
 prior_original = np.copy(prior)
 prior = prior.reshape(nmembers,nCat,xT*yT)
+
 ### PARAMETERS ###
 localization_radius = 0.06 #radians
 obs_var = 0.01 #variance of observed SIC
@@ -154,7 +108,7 @@ results = []
 for h,hem in enumerate(hemispheres):
     prior_temp = np.copy(prior)
     if os.path.exists(hem):
-        loc_fp = '/gpfs/f5/gfdl_o/scratch/William.Gregory/ENKF/tiles/gridinfo_PS_'+hem_labels[h]+'25km_for_OM4grid_locrad'+str(localization_radius)+'.pkl'
+        loc_fp = 'gridinfo_PS_'+hem_labels[h]+'25km_for_OM4grid_locrad'+str(localization_radius)+'.pkl'
         obs = xr.open_dataset(hem)
         obs_lon = obs.lon.to_numpy()
         obs_lat = obs.lat.to_numpy()
@@ -204,66 +158,7 @@ ds = xr.Dataset(data_vars=dict(part_size=(['members','time', 'ct', 'yT', 'xT'], 
 ds.part_size.attrs['long_name'] = 'category_sea_ice_concentration_increments'
 ds.part_size.attrs['units'] = 'area_fraction'
 ds['time'] = [date]
-ds.mean('members').to_netcdf(savepath+date+'.EAKF_increment.ens_mean.nc')
-ds.to_netcdf(savepath+date+'.EAKF_increment.nc')
+ds.mean('members').to_netcdf(date+'.EAKF_increment.ens_mean.nc')
+ds.to_netcdf(date+'.EAKF_increment.nc')
 
-### UPDATE SEA ICE RESTARTS & CREATE NEW SEA ICE PROFILES ###
-rho_ice = 905.
-rho_snow = 330.
-phi_init = 0.75 #initial liquid fraction of frazil ice
-Si_new = 5 #salinity of mushy ice
-Ti = min(liquidus_temperature_mush(Si_new/phi_init),-0.1)
-qi_new = enthalpy_ice(Ti, Si_new)
-hlim = [1.0e-10, 0.1, 0.3, 0.7, 1.1, 2.9]
-hmid = np.array([0.5*(hlim[n]+hlim[n+1]) for n in range(nCat)])
-i_thick = np.tile((hmid*rho_ice)[None,:,None,None],(1,1,xT,yT))
-for member,file in enumerate(ice_restarts):
-    fr = xr.open_dataset(file)
-    SSS = xr.open_dataset(ocn_restarts[member],decode_times=False).Salt.to_numpy()[:,0]
-    prior_m = fr.part_size.to_numpy()
-    post_m = posterior[member]
-
-    cond1 = np.where((prior_m[:,1:]<=0) & (post_m[:,1:]>0)) #where original state was ice-free, but EnKF has added ice
-    cond2 = np.where((prior_m[:,1:]>0) & (post_m[:,1:]<=0)) #where original state contained ice, but EnKF has made ice-free
-
-    h_ice = fr.h_ice.to_numpy()
-    h_ice[cond1] = i_thick[cond1]
-    h_ice[cond2] = 0
-
-    h_snow = fr.h_snow.to_numpy()
-    h_snow[cond1] = 0
-    h_snow[cond2] = 0
-
-    enth_ice = fr.enth_ice.to_numpy()
-    for layer in range(4):
-        enth_ice[:,layer][cond1] = qi_new
-        enth_ice[:,layer][cond2] = 0
-
-    enth_snow = fr.enth_snow.to_numpy()
-    enth_snow[0][cond1] = 0
-    enth_snow[0][cond2] = 0
-
-    T_skin = fr.T_skin.to_numpy()
-    T_skin[cond1] = Ti
-    T_skin[cond2] = np.maximum(-0.0539*(np.tile(SSS[:,None],(1,nCat,1,1))[cond2]),-2.)
-
-    sal_ice = fr.sal_ice.to_numpy()
-    for layer in range(4):
-        sal_ice[:,layer][cond1] = Si_new
-        sal_ice[:,layer][cond2] = 0
-
-    h_pond = fr.h_pond.to_numpy()
-    h_pond[cond1] = 0
-    h_pond[cond2] = 0
-
-    fr.part_size.loc[:] = post_m
-    fr.h_ice.loc[:] = h_ice
-    fr.h_snow.loc[:] = h_snow
-    fr.h_pond.loc[:] = h_pond
-    fr.enth_ice.loc[:] = enth_ice
-    fr.enth_snow.loc[:] = enth_snow
-    fr.T_skin.loc[:] = T_skin
-    fr.sal_ice.loc[:] = sal_ice
-
-    fr.to_netcdf(file,mode='a')
 print('Finished DA:',datetime.now(),flush=True)
