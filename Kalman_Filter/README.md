@@ -12,4 +12,6 @@ This python code uses Ensemble Kalman Filtering to assimilate satellite observat
              wait                                                                                                                                                               
          endif
 
-I originally wrote the code `ENKF_singlenode.py`
+I originally wrote the code `ENKF_mpi.py` to get the code structure largely in place. This isn't super flexible as it assumes that the observations and model are on the same grid. It is however quite fast to run. It divides up the global domain into a series of tiles (appropriately padding each tile depending on the chosen localizationr radius) and performs the Ensemble Kalman Filter on each tile using parallel (mpi) processing. This code has a one-time cost associated with computing the tiles and their halos. This information is then saved to disk and used in subsequent DA calls.
+
+The `EAKF_sequential_singlenode.py` and `EAKF_sequential_mpi.py` are then implementations of the Ensemble Adjustment Kalman Filter, as outlined in [Jeff Anderson's 2003 paper](https://doi.org/10.1175/1520-0493(2003)131<0634:ALLSFF>2.0.CO;2).
