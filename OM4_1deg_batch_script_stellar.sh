@@ -90,7 +90,7 @@ set -r flagVerbosityOff
 set -r flagOutputFillGridOff
 
 set outputDir = /scratch/cimes/wg4031/OM4_1deg/OM4_hybrid_seaiceML/ncrc5.intel-classic-repro-openmp
-set gridSpec = /scratch/cimes/wg4031/inputs/C96.OM360x320.20171213/mosaic.tar
+set gridSpec = /scratch/cimes/wg4031/inputs/mosaic.tar
 set initCond = /scratch/cimes/wg4031/initCond_OM4/20180101.tar
 
   set -r npes = 72
@@ -1038,6 +1038,84 @@ while ( $irun <= $segmentsPerJob && $currentSeg <= $segmentsPerSimulation )
    endif
 
    # ---------------- commands
+
+#------------------------------------------                                                                                                                                                                      
+## Find out whether to restart.                                                                                                                                                                                  
+# MOM6 restart switch                                                                                                                                                                                            
+if ( $currentSeg == 1 ) then                                                                                                                                                                                     
+   set restart_flag = 'n'                                                                                                                                                                                        
+else                                                                                                                                                                                                             
+   set restart_flag = 'r'                                                                                                                                                                                        
+endif                                                                                                                                                                                                            
+   set restart_flag = 'r'                                                                                                                                                                                        
+   set sis_restart_flag = 'r'                                                                                                                                                                                    
+                                                                                                                                                                                                                 
+   #Because of a technical issue FRE does not delete old uncombined restarts before copying the new ones for the next segment                                                                                    
+   #The INPUT/ ends up with inconsistent restart files which at best cause the model to crash right away.                                                                                                        
+   if(-e $workDir/INPUT/MOM.res.nc.0000 ) \rm -rf $workDir/INPUT/MOM.res*.nc                                                                                                                                           
+endif                                                                                                                                                                                                            
+                                                                                                                                                                                                                 
+ln -s $workDir/INPUT/ocean_topog.nc $workDir/INPUT/topog.nc                                                                                                                                                            
+                                                                                                                                                                                                                 
+touch $workDir/INPUT/MOM_override                                                                                                                                                                                   
+touch $workDir/INPUT/MOM_layout                                                                                                                                                                                     
+touch $workDir/INPUT/SIS_layout  
+
+# Record the job stdout location for later use timings database                                                                                                                                                  
+cat >> /ncrc/home2/William.Gregory/frejobs_stdout <<EOF_frejobs                                                                                                                                                  
+$stdoutDir/$FRE_JOBID                                                                                                                                                                                            
+EOF_frejobs                                                                                                                                                                                                      
+                                                                                                                                                                                                                 
+cat > $work/INPUT/MOM_layout << MOM_LAYOUT_EOF                                                                                                                                                                   
+#override IO_LAYOUT = $ocn_io_layout                                                                                                                                                                             
+#override LAYOUT    = $ocn_layout                                                                                                                                                                                
+#override MASKTABLE = $ocn_mask_table                                                                                                                                                                            
+#override OCEAN_OMP_THREADS = $ocn_threads                                                                                                                                                                       
+MOM_LAYOUT_EOF                                                                                                                                                                                                   
+                                                                                                                                                                                                                 
+cat > $work/INPUT/SIS_layout << SIS_LAYOUT_EOF                                                                                                                                                                   
+#override IO_LAYOUT = $ice_io_layout                                                                                                                                                                             
+#override LAYOUT    = $ice_layout                                                                                                                                                                                
+#override MASKTABLE = $ice_mask_table                                                                                                                                                                            
+SIS_LAYOUT_EOF 
+
+#Note: No SIS_diurnal hence                                                                                                                                                                                      
+#ADD_DIURNAL_SW = False                                                                                                                                                                                          
+#since JRA forcings has a diurnal cycle                                                                                                                                                                          
+                                                                                                                                                                                                                 
+#######IAF cycle mechanism                                                                                                                                                                                       
+echo "Model year = $fyear"                                                                                                                                                                                       
+#Current JRA dataset starts at 1958 and ends at 2018                                                                                                                                                             
+#These numbers should be adjusted when the datasets start or length changes.                                                                                                                                     
+set JRA_START_YEAR = 1958                                                                                                                                                                                        
+#set JRA_LEN = 64                                                                                                                                                                                                
+#@ modulyr = ( $fyear - $JRA_START_YEAR ) % $JRA_LEN                                                                                                                                                             
+#@ forceyr = $JRA_START_YEAR + $modulyr                                                                                                                                                                          
+#if ( $modulyr < 0 ) then                                                                                                                                                                                        
+#   @ forceyr = $forceyr + $JRA_LEN                                                                                                                                                                              
+#endif                                                                                                                                                                                                           
+#The above logic is not needed for cycles that start at 1958 (set by xml property fyear and reset in coupler_nml:current_date)                                                                                   
+@ forceyr = $fyear                                                                                                                                                                                               
+echo "Forcings file year = $forceyr"                                                                                                                                                                             
+@ forceyrp1 = $forceyr + 1
+
+cd $workDir/INPUT/                                                                                                                                                                                                  
+set fetch_cmd = 'ln -sf ' #This might be the cause of frequent crashes with HDF errors?!                                                                                                                         
+$fetch_cmd /scratch/cimes/wg4031/JRA/huss_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_${forceyr}01010000-${forceyr}12312100.padded.nc JRA_huss.nc                                                                                                                                                                                                         
+$fetch_cmd /scratch/cimes/wg4031/JRA/prra_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_${forceyr}01010130-${forceyr}12312230.padded.nc JRA_prra.nc                                                                                                                                                                                                         
+$fetch_cmd /scratch/cimes/wg4031/JRA/prsn_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_${forceyr}01010130-${forceyr}12312230.padded.nc JRA_prsn.nc                                                                                                                                                                                                         
+$fetch_cmd /scratch/cimes/wg4031/JRA/psl_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_${forceyr}01010000-${forceyr}12312100.padded.nc JRA_psl.nc                                                                                                                                                                                                           
+$fetch_cmd /scratch/cimes/wg4031/JRA/rlds_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_${forceyr}01010130-${forceyr}12312230.padded.nc JRA_rlds.nc                                                                                                                                                                                                         
+$fetch_cmd /scratch/cimes/wg4031/JRA/rsds_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_${forceyr}01010130-${forceyr}12312230.padded.nc JRA_rsds.nc                                                                                                                                                                                                         
+$fetch_cmd /scratch/cimes/wg4031/JRA/tas_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_${forceyr}01010000-${forceyr}12312100.padded.nc JRA_tas.nc                                                                                                                                                                                                           
+$fetch_cmd /scratch/cimes/wg4031/JRA/uas_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_${forceyr}01010000-${forceyr}12312100.padded.nc JRA_uas.nc                                                                                                                                                                                                           
+$fetch_cmd /scratch/cimes/wg4031/JRA/vas_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_${forceyr}01010000-${forceyr}12312100.padded.nc JRA_vas.nc                                                                                                                                                                                                           
+#                                                                                                                                                                                                                
+$fetch_cmd /scratch/cimes/wg4031/JRA/friver_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_${forceyr}0101-${forceyr}1231.padded.regrid360x320.nc JRA_friver_360x320.nc    
+$fetch_cmd /scratch/cimes/wg4031/JRA/licalvf_input4MIPs_atmosphericState_OMIP_MRI-JRA55-do-1-5-0_gr_${forceyr}0101-${forceyr}1231.padded.regrid360x320.nc JRA_licalvf_360x320.nc  
+#                                                                                                                                                                                                                
+$fetch_cmd /scratch/cimes/wg4031/OISST/sst_oidaily_v2p1_icecorr_icec30_tripolar_${forceyr}.nc temp_restore.nc                                                                             
+cd $workDir
 
 
 cd INPUT
