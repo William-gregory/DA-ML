@@ -1,0 +1,3772 @@
+#!/bin/csh -fx
+#SBATCH --chdir=/scratch/cimes/wg4031/OM4_1deg/OM4_hybrid_seaiceML/ncrc5.intel-classic-repro-openmp/stdout/run
+#SBATCH --output=/scratch/cimes/wg4031/OM4_1deg/OM4_hybrid_seaiceML/ncrc5.intel-classic-repro-openmp/stdout/run/%x.o%j
+#SBATCH --job-name=OM4_hybrid_seaiceML
+#SBATCH --mail-user=wg4031@princeton.edu
+#SBATCH --mail-type=fail
+#SBATCH --ntasks=72
+#SBATCH --exclusive
+#SBATCH --qos=cimes-short
+#SBATCH --mem-per-cpu=2G
+#SBATCH --time=10:00:00
+
+set -r echoOn = $?echo
+set -r runtimeBeg = `date "+%s"`
+
+if ( $echoOn ) unset echo
+echo '<NOTE> : ====== FRE RUNSCRIPT ======'
+echo "<NOTE> : Starting at $HOST on `date`"
+if ( $echoOn ) set echo
+
+unalias *
+
+if ( $echoOn ) unset echo
+set -r modulesHomeDir = $MODULESHOME
+source $modulesHomeDir/init/tcsh
+if ( $echoOn ) set echo
+
+if ( $?SLURM_JOB_ID ) then
+   tty -s
+   if ($status) then
+      set -r FRE_JOBID = $SLURM_JOB_NAME:t.o$SLURM_JOB_ID
+      set -r batch
+   else
+      set -r FRE_JOBID = $0:t.o`date +%s`
+   endif
+else
+   set -r FRE_JOBID = $0:t.o`date +%s`
+endif
+
+if ( $echoOn ) unset echo
+echo "################################################################################"
+echo "# $FRE_JOBID"
+echo "################################################################################"
+if ( $echoOn ) set echo
+
+################################################################################
+#---------------- global constants and variables, set by frerun ----------------
+################################################################################
+
+set -r platform = ncrc5.intel-classic
+set -r target = repro-openmp
+set -r name = OM4_hybrid_seaiceML
+set -r stdoutDir = /scratch/cimes/wg4031/OM4_1deg/OM4_hybrid_seaiceML/ncrc5.intel-classic-repro-openmp/stdout/run
+set -r stdoutTmpDir = /scratch/cimes/wg4031/OM4_1deg/OM4_hybrid_seaiceML/ncrc5.intel-classic-repro-openmp/stdout/run
+set -r stateDir = /scratch/cimes/wg4031/OM4_1deg/OM4_hybrid_seaiceML/ncrc5.intel-classic-repro-openmp/state/run
+set -r workDir = /scratch/cimes/wg4031/OM4_1deg/work/$FRE_JOBID
+set -r ptmpDir = /scratch/cimes/wg4031/OM4_1deg/OM4_hybrid_seaiceML/ptmp
+set -r archiveDir = /scratch/cimes/wg4031/OM4_1deg/OM4_hybrid_seaiceML/ncrc5.intel-classic-repro-openmp
+set -r scriptName = /home/wg4031/OM4_runs/OM4_hybrid_seaiceML
+set -r executable = /scratch/cimes/wg4031/MOM6-examples/build/OM4_seaiceML/OM4_seaiceML
+set -r segmentsPerSimulation = 1
+set segmentsPerPPCall = 0
+set -r segmentsPerJob = 1
+set -r monthslist = ( 12 )
+set -r dayslist = ( 0 )
+set -r hourslist = ( 0 )
+set -r timeStampOptions = ( -f digital )
+set -r baseDate = '2018 1 1 0 0 0'
+set -r mailMode = fail
+set -r mailList = wg4031@princeton.edu
+set -r includeDir = /scratch/cimes/wg4031/SPEAR_include
+set -r ardiffTmpdir = /scratch/cimes/wg4031/OM4_1deg/OM4_hybrid_seaiceML/ptmp
+
+set -r flagRunTypeProduction
+set -r flagCheckSumOff
+set -r flagWorkDirCleanOn
+set -r flagOutputTypeOverwrite
+set -r flagOutputFormat64Bit
+set -r flagOutputStagingTypeChained
+set -r flagOutputCacheHistoryOff
+set -r flagOutputCombineHistoryOn
+set -r flagOutputCompressAsciiOff
+set -r flagOutputCompressRestartOff
+set -r flagOutputCompressHistoryOff
+set -r flagOutputArchiveOn
+set -r flagOutputPostProcessOn
+set -r flagOutputXferOn
+set -r flagOutputCheckOff
+set -r flagVerbosityOff
+set -r flagOutputFillGridOff
+
+set outputDir = /scratch/cimes/wg4031/OM4_1deg/OM4_hybrid_seaiceML/ncrc5.intel-classic-repro-openmp
+set gridSpec = /scratch/cimes/wg4031/MOM6_datasets/C96.OM360x320.20171213/mosaic.tar
+set initCond = /scratch/cimes/wg4031/initCond_OM4/20180101.tar
+
+  set -r npes = 72
+  set -r atm_ranks = 
+  set -r tot_atm_ranks = 0
+  set -r atm_threads = 1
+  set -r atm_layout =
+  set -r atm_io_layout =
+  set -r atm_mask_table = 
+  set -r atm_hyperthread = .true.
+  set -r scheduler_atm_threads =
+  set -r atm_nxblocks = 1
+  set -r atm_nyblocks = 1
+  set -r ocn_ranks = 72
+  set -r tot_ocn_ranks = 72
+  set -r ocn_threads = 1
+  set -r ocn_layout = 12,6
+  set -r ocn_io_layout = 1,1
+  set -r ocn_mask_table = MOM_mask_table
+  set -r ocn_hyperthread = .false.
+  set -r scheduler_ocn_threads = 1
+  set -r lnd_ranks = 
+  set -r tot_lnd_ranks = 
+  set -r lnd_threads = 
+  set -r lnd_layout = 
+  set -r lnd_io_layout =
+  set -r lnd_mask_table = 
+  set -r lnd_hyperthread = .false.
+  set -r scheduler_lnd_threads = 
+  set -r ice_ranks = 
+  set -r tot_ice_ranks = 
+  set -r ice_threads = 
+  set -r ice_layout = 12,6
+  set -r ice_io_layout = 1,1
+  set -r ice_mask_table = 
+  set -r ice_hyperthread = .false.
+  set -r scheduler_ice_threads = 
+
+alias runCommand time `which srun` --ntasks=$tot_ocn_ranks --cpus-per-task=$scheduler_ocn_threads --cpu-bind=cores --export=ALL,OMP_NUM_THREADS=$ocn_threads ./$executable:t
+ 
+set -r mppnccombineOptsRestart = '-h 65536 -m'
+set -r mppnccombineOptsHistory = '-h 65536 -m'
+
+set -r FreCommandsSrcDir = /scratch/cimes/wg4031/MOM6-examples/src/
+set -r FreCommandsBldDir = /scratch/cimes/wg4031/MOM6-examples/build/
+
+################################################################################
+#------------------------ global constants and aliases -------------------------
+################################################################################
+
+if ( $echoOn ) unset echo
+
+# Platform environment defaults from /ncrc/home2/fms/local/opt/fre-commands/bronx-21/site/ncrc5/env.defaults.intel-classic
+module load intel-rt/2021.1.2 intel-tbb/2021.1.1 intel-mkl/2021.1.1 intel-debugger/10.0.0 intel-dpl/2021.1.2 /opt/intel/oneapi/compiler/2021.1.2/linux/lib/oclfpga/modulefiles/oclfpga
+module load intel/2021.1.2 openmpi/intel-2021.1/4.1.0 hdf5/intel-2021.1/1.10.6 netcdf/intel-19.1/hdf5-1.10.6/4.7.4 nco/netcdf-4.7.4/hdf5-1.10.6/5.0.3
+
+setenv LD_LIBRARY_PATH "/usr/lib:/usr/local/openmpi/4.1.0/intel20211/lib64:/opt/intel/oneapi/compiler/2021.1.2/linux/compiler/lib/intel64:${LD_LIBRARY_PATH}"
+      
+module list
+
+set -r architecture = 'x86_64'
+set machine = `uname -m`
+
+if ( $machine != $architecture ) then
+   if ( $echoOn ) unset echo
+   echo "*ERROR*: The script '$scriptName' is intended for the machine architecture '$architecture'"
+   if ( $echoOn ) set echo
+   exit 1
+endif
+
+unset machine
+
+set -r tmpOutputDir = $workDir/output.stager
+set -r envFile = /tmp/shell.variables.$FRE_JOBID
+set -r envFileDelay = 2
+
+set -r patternGrepAscii = '\<out\>|\<results\>|\<log\>|\<timestats\>|\<stats\>|\<velocity_truncations\>'
+set -r patternGrepRestart = '\<res\>|\<nc\>|\.input.\tgz$|\.ww3$'
+set -r patternGrepRestartNextDrop = '\<res\>'
+set -r patternGrepRestartNextMove = '\<res\>|\<nc\>|\.ww3$'
+set -r patternGrepHistory = '\<nc\>|\.ww3$'
+set -r patternGrepRegion = '^rregion'
+
+set -r patternSedHome = 's/^\/(autofs|ncrc)\/.+\/'$USER'\//\/home\/'$USER'\/'
+set -r patternSedF5 = 's|^/scratch/cimes/'$USER'/|/home/'$USER'/|'
+
+set -r patternSedSCRATCH = "$patternSedF5"
+set -r patternSedDEV = "$patternSedF5"
+set -r patternSedCTMP = "$patternSedSCRATCH"
+set -r patternSedCPERM = "$patternSedDEV"
+
+set -r archExt = 'tar'
+
+set -r outputStagingType = `set -r | grep '^flagOutputStagingType' | sed 's/flagOutputStagingType//'`
+
+alias expandVariables /scratch/cimes/wg4031/fre_scripts/expand_variables --verbose
+alias findModuleInfo /scratch/cimes/wg4031/fre_scripts/find_modules_info --verbose
+alias findXIncludes /scratch/cimes/wg4031/fre_scripts/find_xincludes --verbose
+alias prepareDir /scratch/cimes/wg4031/fre_scripts/prepare_dir.csh
+alias timeStamp /scratch/cimes/wg4031/fre_scripts/time_stamp.csh $timeStampOptions
+alias workDirCleaner /scratch/cimes/wg4031/fre_scripts/batch_rmdir.csh
+alias adjust_dry_mass_tool /scratch/cimes/wg4031/fre_scripts/adjust_dry_mass.csh
+
+set -r workDirCleaner = `alias workDirCleaner`
+
+alias outputStager /scratch/cimes/wg4031/fre_scripts/output.stager
+
+set -r outputStager = `alias outputStager`
+@ outputStagerErrors = 0
+
+################################################################################
+#--------------------------------- environment ---------------------------------
+################################################################################
+
+limit stacksize unlimited
+limit coredumpsize unlimited
+limit
+
+if ( $#dayslist != $segmentsPerJob || $#monthslist != $segmentsPerJob || $#hourslist != $segmentsPerJob ) then
+   if ( $echoOn ) unset echo
+   echo "*ERROR*: dayslist, monthslist and hourslist lengths must be equal to a number of segments per job"
+   if ( $echoOn ) set echo
+   exit 1
+endif
+
+  # NiNaC not loaded when script created
+
+################################################################################
+#----------------------------- global variables --------------------------------
+################################################################################
+
+set continueFlag = 1
+
+set combineList = ( )
+set saveJobIds = ( )
+set argFiles = ( )
+
+@ currentSeg = 1
+@ irun = 1
+
+################################################################################
+#--------------------------- before the main loop ------------------------------
+################################################################################
+
+if ( $?flagRunTypeProduction ) then
+   mkdir -p $stateDir
+   if ( $status != 0 ) then
+      if ( $echoOn ) unset echo
+      echo "*ERROR*: Unable to setup the state directory '$stateDir'"
+      if ( $echoOn ) set echo
+      exit 1
+   endif
+   set reload_file = $stateDir/reload_commands
+
+   if ( -f $reload_file ) then
+      if ( -r $reload_file ) then
+         source $reload_file
+         if ( $#argFiles > 0 ) then
+            if ( `echo $argFiles | tr ' ' "\n" | grep --count "^$FRE_JOBID"` != $#argFiles ) then
+               set saveJobIds = ( )
+               set argFiles = ( )
+            endif
+         endif
+      else
+         if ( $echoOn ) unset echo
+         echo "*ERROR*: The reload file '$reload_file' is not readable"
+         if ( $echoOn ) set echo
+         exit 1
+      endif
+   endif
+
+   set queue_file = $stateDir/queue_commands
+
+   if ( -f $queue_file ) then
+      if ( -r $queue_file ) then
+         source $queue_file
+      else
+         if ( $echoOn ) unset echo
+         echo "*ERROR*: The queue file '$queue_file' is not readable"
+         if ( $echoOn ) set echo
+         exit 1
+      endif
+   else
+      touch $queue_file
+      if ( $status == 0 ) then
+         if ( $echoOn ) unset echo
+         echo "<NOTE> : Writing queue information to the queue file '$queue_file' at `date +%s`"
+         if ( $echoOn ) set echo
+         echo "set continueFlag = $continueFlag" >> $queue_file
+         chmod 644 $queue_file
+      else
+         if ( $echoOn ) unset echo
+         echo "*ERROR*: The queue file '$queue_file' can't be saved"
+         if ( $echoOn ) set echo
+         exit 1
+      endif
+   endif
+
+   if ( ! $continueFlag ) then
+      if ( $echoOn ) unset echo
+      echo "<NOTE> : Stopping execution"
+      if ( $echoOn ) set echo
+      exit 0
+   endif
+endif
+
+if ( $?fyear ) then
+   #remove leading zeros, fyear as integer
+   set fyearint = `echo $fyear | sed 's/^0*//'`
+   if ( ${fyearint} > 0 ) then
+      @ fyearm1 = ${fyearint} - 1
+      set fyearm1 = `printf "%04d" $fyearm1`
+   else
+      set fyearm1 = '0000'
+   endif
+   @ fyearp1 = ${fyearint} + 1
+   set fyearp1 = `printf "%04d" $fyearp1`
+   @ fyearp2 = ${fyearint} + 2
+   set fyearp2 = `printf "%04d" $fyearp2`
+endif
+
+if ( $?ireload ) then
+   # Using old way to calculate currentSeg
+   # Get best guess --- may not be correct if user changed number of segments
+   # per job after job started --- frerun -e does not update state file
+   @ currentSeg = ( $ireload - 1 ) * $segmentsPerJob + $irun
+endif
+
+if ( -e $workDir ) then
+   if ( -d $workDir ) then
+      if ( -r $workDir ) then
+         if ( -w $workDir ) then
+            ls -1 --directory --file-type $workDir/* | grep --fixed-strings --invert-match $tmpOutputDir | xargs rm --force --recursive
+            mkdir -p $workDir/INPUT 'clean'     || exit 1
+            mkdir -p $workDir/RESTART 'clean'   || exit 1
+         else
+            if ( $echoOn ) unset echo
+            echo "*ERROR*: The directory '$workDir' exists, but is not writable"
+            if ( $echoOn ) set echo
+            exit 1
+         endif
+      else
+         if ( $echoOn ) unset echo
+         echo "*ERROR*: The directory '$workDir' exists, but is not readable"
+         if ( $echoOn ) set echo
+         exit 1
+      endif
+   else
+      if ( $echoOn ) unset echo
+      echo "*ERROR*: The pathname '$workDir' exists, but is not a directory"
+      if ( $echoOn ) set echo
+      exit 1
+   endif
+else
+   mkdir -p $workDir         || exit 1
+   mkdir -p $workDir/INPUT   || exit 1
+   mkdir -p $workDir/RESTART || exit 1
+endif
+
+cd $workDir
+
+set dataFilesNotOK = ( )
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  tar -xf /scratch/cimes/wg4031/initCond_LOAR/LOAR4/TOPODRAG_SETUP/c96/topoC96_rough_land.tar -C $workDir/INPUT/
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/initCond_LOAR/LOAR4/TOPODRAG_SETUP/c96/topoC96_rough_land.tar )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_LM4/soil_type_hwsd_5minute.nc $workDir/INPUT/soil_type.nc
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_LM4/soil_type_hwsd_5minute.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_LM4/biodata.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_LM4/biodata.nc )
+  endif
+  
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_LM4/cover_type.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_LM4/cover_type.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_LM4/geohydrology.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_LM4/geohydrology.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_LM4/geohydrology_table_2a2n.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_LM4/geohydrology_table_2a2n.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_LM4/ground_type.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_LM4/ground_type.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_LM4/landuse.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_LM4/landuse.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_LM4/soil_brdf.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_LM4/soil_brdf.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  tar -xf /scratch/cimes/wg4031/cmip6/datasets/CM4/common/c96_LM4/c96_topo_rough_land.nc.tar -C $workDir/INPUT/
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/datasets/CM4/common/c96_LM4/c96_topo_rough_land.nc.tar )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/SPEAR_include/datasets/1949_2040/landuse_transitions/transitions.Hist_SSP585_1940_2040.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/SPEAR_include/datasets/1949_2040/landuse_transitions/transitions.Hist_SSP585_1940_2040.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/SPEAR_include/datasets/1949_2040/landuse_transitions/states.Hist_SSP585_1940_2040.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/SPEAR_include/datasets/1949_2040/landuse_transitions/states.Hist_SSP585_1940_2040.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/cmip6/datasets/CM4/forcings/landuse/LUH2/v2.0h/landfrac.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/datasets/CM4/forcings/landuse/LUH2/v2.0h/landfrac.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  tar -xf /scratch/cimes/wg4031/MOM6_datasets/C96.OM360x320.20171213/SPEAR_c96_hydrography.tar -C $workDir/INPUT/
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/MOM6_datasets/C96.OM360x320.20171213/SPEAR_c96_hydrography.tar )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  cd $workDir/INPUT && /usr/bin/cpio -id < /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_AM4/sea_esf_CM4_V6_AUG2015.cpio && cd $workDir
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_AM4/sea_esf_CM4_V6_AUG2015.cpio )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  tar -xf /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_AM4/aerosol_inputs_newdroplet2_v20170208.tar -C $workDir/INPUT/
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_AM4/aerosol_inputs_newdroplet2_v20170208.tar )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  cd $workDir/INPUT && /usr/bin/cpio -id < /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_AM4/tropchem_dec2015.cpio && cd $workDir
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_AM4/tropchem_dec2015.cpio )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_AM4/depvel_gc_am3_tran.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_AM4/depvel_gc_am3_tran.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_AM4/so2_0.25_volcanoes.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_AM4/so2_0.25_volcanoes.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_AM4/am4_optical_table_20151029.dat $workDir/INPUT/AM4_201510
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/datasets/CM4/common/common_AM4/am4_optical_table_20151029.dat )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  tar -xf /scratch/cimes/wg4031/ECDA_data/forcings/cmip6_Scenario_ssp585_GHG_ODS_conc_2500.tar -C $workDir/INPUT/
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/ECDA_data/forcings/cmip6_Scenario_ssp585_GHG_ODS_conc_2500.tar )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/ECDA_data/forcings/chemlbf_REMIND-MAGPIE-ssp585-1-2-0 $workDir/INPUT/chemlbf
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/ECDA_data/forcings/chemlbf_REMIND-MAGPIE-ssp585-1-2-0 )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/ECDA_data/forcings/mmro3_ScenarioMIP-ssp585_197901-202912.nc $workDir/INPUT/o3.climatology.nc
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/ECDA_data/forcings/mmro3_ScenarioMIP-ssp585_197901-202912.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/cmip6/datasets/CM4/forcings/common_cmip6/emissions.isoprene.1x1.2000.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/datasets/CM4/forcings/common_cmip6/emissions.isoprene.1x1.2000.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/cmip6/datasets/CM4/forcings/common_cmip6/emissions.terpenes.1x1.2000.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/datasets/CM4/forcings/common_cmip6/emissions.terpenes.1x1.2000.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/cmip6/CMIP6_INPUT/Volcano_V2/extsw_data.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/CMIP6_INPUT/Volcano_V2/extsw_data.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/cmip6/CMIP6_INPUT/Volcano_V2/omgsw_data.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/CMIP6_INPUT/Volcano_V2/omgsw_data.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/cmip6/CMIP6_INPUT/Volcano_V2/asmsw_data.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/CMIP6_INPUT/Volcano_V2/asmsw_data.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/cmip6/CMIP6_INPUT/Volcano_V2/extlw_data.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/CMIP6_INPUT/Volcano_V2/extlw_data.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/cmip6/CMIP6_INPUT/Solar/lean_solar_spectral_data.dat $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/CMIP6_INPUT/Solar/lean_solar_spectral_data.dat )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  tar -xf /scratch/cimes/wg4031/ECDA_data/forcings/emissions.fastchem.0.5x0.5.1979-2101.tar -C $workDir/INPUT/
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/ECDA_data/forcings/emissions.fastchem.0.5x0.5.1979-2101.tar )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/ECDA_data/forcings/emissions.simple.so2.0.5x0.5.1979-2101.nc $workDir/INPUT/anthro_so2.1979_2101.nc
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/ECDA_data/forcings/emissions.simple.so2.0.5x0.5.1979-2101.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/ECDA_data/forcings/co2_ssp585_3D_0to2499.nc $workDir/INPUT/co2_data.nc
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/ECDA_data/forcings/co2_ssp585_3D_0to2499.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/cmip6/datasets/CM4/common/L32_gas_conc/gas_conc_3D32L_am3p9.nc $workDir/INPUT/gas_conc_3D_am3p9.nc
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/cmip6/datasets/CM4/common/L32_gas_conc/gas_conc_3D32L_am3p9.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/SPEAR_include/land_ice_ocean_LM3_SIS2/OM_360x320_C180/INPUT/layer_coord.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/SPEAR_include/land_ice_ocean_LM3_SIS2/OM_360x320_C180/INPUT/layer_coord.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/SPEAR_include/land_ice_ocean_LM3_SIS2/OM_360x320_C180/INPUT/seawifs_1998-2006_smoothed_2X.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/SPEAR_include/land_ice_ocean_LM3_SIS2/OM_360x320_C180/INPUT/seawifs_1998-2006_smoothed_2X.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/SPEAR_include/land_ice_ocean_LM3_SIS2/OM_360x320_C180/INPUT/tidal_amplitude.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/SPEAR_include/land_ice_ocean_LM3_SIS2/OM_360x320_C180/INPUT/tidal_amplitude.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/SPEAR_include/land_ice_ocean_LM3_SIS2/OM_360x320_C180/INPUT/MOM_channels_FLOR $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/SPEAR_include/land_ice_ocean_LM3_SIS2/OM_360x320_C180/INPUT/MOM_channels_FLOR )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/SPEAR_include/ice_ocean_SIS2/OM4_025/INPUT/vgrid_75_2m.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/SPEAR_include/ice_ocean_SIS2/OM4_025/INPUT/vgrid_75_2m.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/MOM6_datasets/FLOR2/diag_vgrid.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/MOM6_datasets/FLOR2/diag_vgrid.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/SPEAR_include/ice_ocean_SIS2/OM4_025/INPUT/WOA05_pottemp_salt.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/SPEAR_include/ice_ocean_SIS2/OM4_025/INPUT/WOA05_pottemp_salt.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/MOM6_datasets/FLOR2/edits_012016.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/MOM6_datasets/FLOR2/edits_012016.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/MOM6_datasets/FLOR2/edits_013016a.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/MOM6_datasets/FLOR2/edits_013016a.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/MOM6_datasets/MOM_channels_SPEAR_20180119 $workDir/INPUT/MOM_channels_SPEAR
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/MOM6_datasets/MOM_channels_SPEAR_20180119 )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/SPEAR_include/land_ice_ocean_LM3_SIS2/OM_360x320_C180/MOM_input $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/SPEAR_include/land_ice_ocean_LM3_SIS2/OM_360x320_C180/MOM_input )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/SPEAR_include/ice_ocean_SIS2/OM4_025/INPUT/hycom1_75_800m.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/SPEAR_include/ice_ocean_SIS2/OM4_025/INPUT/hycom1_75_800m.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/MOM6_datasets/SPEAR/MOM_input_P39_init $workDir/INPUT/MOM_input
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/MOM6_datasets/SPEAR/MOM_input_P39_init )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/SPEAR_include/land_ice_ocean_LM3_SIS2/OM_360x320_C180/SIS_input $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/SPEAR_include/land_ice_ocean_LM3_SIS2/OM_360x320_C180/SIS_input )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/MOM6_datasets/LOAR4/SIS_input_C39_init $workDir/INPUT/SIS_input
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/MOM6_datasets/LOAR4/SIS_input_C39_init )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/MOM6_datasets/Kh_BG_2D/Kh_background_5e3_50to90ns.nc $workDir/INPUT/KH_background_2d.nc
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/MOM6_datasets/Kh_BG_2D/Kh_background_5e3_50to90ns.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/MOM6_datasets/topo_edits_011818.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/MOM6_datasets/topo_edits_011818.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/ECDA_data/basin.nc $workDir/INPUT/.
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/ECDA_data/basin.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/ECDA_data/vgrid_75_2m.nc $workDir/INPUT/vgrid_oda.nc
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/ECDA_data/vgrid_75_2m.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/ECDA_data/coord_75.nc $workDir/INPUT/coord_oda.nc
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/ECDA_data/coord_75.nc )
+  endif
+
+  if (! -d $workDir/INPUT/) mkdir -p $workDir/INPUT/ && \
+  ln -f /scratch/cimes/wg4031/ECDA_data/increments/inc.H64.2007-2018.nc $workDir/INPUT/inc.nc
+  if ( $status != 0 ) then
+    set dataFilesNotOK = ( $dataFilesNotOK /scratch/cimes/wg4031/ECDA_data/increments/inc.H64.2007-2018.nc )
+  endif
+
+if ( $#dataFilesNotOK > 0 ) then
+   if ( $echoOn ) unset echo
+   foreach dataFile ( $dataFilesNotOK )
+      echo "*ERROR*: A problem with the data file: $dataFile"
+   end
+   echo "*ERROR*: Failed to copy data files"
+   if ( $echoOn ) set echo
+   exit 1
+endif
+
+@ gridSpecStatus = 0
+
+tar -xf $gridSpec -C $workDir/INPUT
+@ gridSpecStatus = $status
+
+if ( $gridSpecStatus ) then
+   if ( $echoOn ) unset echo
+   echo "*ERROR*: Failed to copy grid specification"
+   if ( $echoOn ) set echo
+   exit 1
+endif
+
+unset gridSpecStatus
+
+@ initCondStatus = 0
+
+tar -xf $initCond -C $workDir/INPUT
+@ initCondStatus = $status
+
+if ( $initCondStatus ) then
+   if ( $echoOn ) unset echo
+   echo "*ERROR*: Failed to copy initial conditions"
+   if ( $echoOn ) set echo
+   exit 1
+endif
+
+unset initCondStatus
+
+set domains_stack_size = "2097152"
+      
+set domains_stack_size = "3097152"
+#set ocn_mask_table = "MOM_mask_table"
+
+cat > $workDir/INPUT/MOM_layout << LAYOUT_EOF
+#override LAYOUT = $ocn_layout
+#override IO_LAYOUT = $ocn_io_layout
+MASKTABLE = $ocn_mask_table
+LAYOUT_EOF
+
+cat > $workDir/INPUT/SIS_layout << LAYOUT_EOF
+#override LAYOUT = $ice_layout
+#override IO_LAYOUT = $ice_io_layout
+MASKTABLE = $ocn_mask_table
+LAYOUT_EOF
+
+      
+
+cd $workDir
+
+if ( $echoOn ) unset echo
+ls -l INPUT/*
+if ( $echoOn ) set echo
+
+ln -f $executable . || cp -pf $executable .
+
+if ( $status == 0 ) then
+   if ( $echoOn ) unset echo
+   echo "<NOTE> : Using the executable '$executable'"
+   if ( $echoOn ) set echo
+else
+   if ( $echoOn ) unset echo
+   echo "*ERROR*: Failed to copy the executable"
+   if ( $echoOn ) set echo
+   exit 1
+endif
+
+cat >> diag_table <<EOF
+i20180101_ODA_OTA_IceDA_15mem
+2018 1 1 0 0 0
+     "grid_spec",            -1,  "months",  1, "days", "time"
+"atmos_month",           1,  "months",  1, "days", "time"
+"ice_static",           -1, "months",  1, "days", "time"
+"ice_daily",             24, "hours",  1, "days", "time"
+"ice_month",              1, "months", 1, "days", "time",
+"iceberg_month",          1, "months", 1, "days", "time",
+"ocean_static",          -1, "months", 1, "days", "time"
+"ocean_month",            1, "months", 1, "days", "time"
+#
+#===============================================================================
+# ICE DIAGNOSTICS:
+#=============================================================================== 
+ "ice_model", "CELL_AREA",  "CELL_AREA",    "ice_static", "all", "none", "none", 2
+ "ice_model", "COSROT",     "COSROT",       "ice_static", "all", "none", "none", 2
+ "ice_model", "GEOLAT",     "GEOLAT",       "ice_static", "all", "none", "none", 2
+ "ice_model", "GEOLON",     "GEOLON",       "ice_static", "all", "none", "none", 2
+ "ice_model", "SINROT",     "SINROT",       "ice_static", "all", "none", "none", 2
+# Daily sea-ice
+ "ice_model", "SST",        "SST",          "ice_daily", "all", "mean", "none", 2
+ "ice_model", "SSH",        "SSH",          "ice_daily", "all", "mean", "none", 2
+ "ice_model", "siconc",     "siconc",       "ice_daily", "all", "mean", "none", 2
+ "ice_model", "sithick",    "sithick",      "ice_daily", "all", "mean", "none", 2
+ "ice_model", "dCN",        "dCN",          "ice_daily", "all", "mean", "none", 2
+# Monthly sea-ice
+ "ice_model", "CELL_AREA",  "CELL_AREA",    "ice_month", "all", "none", "none", 2
+ "ice_model", "COSROT",     "COSROT",       "ice_month", "all", "none", "none", 2
+ "ice_model", "GEOLAT",     "GEOLAT",       "ice_month", "all", "none", "none", 2
+ "ice_model", "GEOLON",     "GEOLON",       "ice_month", "all", "none", "none", 2
+ "ice_model", "SINROT",     "SINROT",       "ice_month", "all", "none", "none", 2
+ "ice_model", "ALB",        "ALB",          "ice_month", "all", "mean", "none", 2
+ "ice_model", "BHEAT",      "BHEAT",        "ice_month", "all", "mean", "none", 2
+ "ice_model", "BMELT",      "BMELT",        "ice_month", "all", "mean", "none", 2
+ "ice_model", "BSNK",       "BSNK",         "ice_month", "all", "mean", "none", 2
+ "ice_model", "CALVING",    "CALVING",      "ice_month", "all", "mean", "none", 2
+ "ice_model", "CALVING_HFLX","CALVING_HFLX","ice_month", "all", "mean", "none", 2
+ "ice_model", "CN",         "CN",           "ice_month", "all", "mean", "none", 2
+ "ice_model", "E2MELT",     "E2MELT",       "ice_month", "all", "mean", "none", 2
+ "ice_model", "EVAP",       "EVAP",         "ice_month", "all", "mean", "none", 2
+ "ice_model", "EXT",        "EXT",          "ice_month", "all", "mean", "none", 2
+ "ice_model", "EXT",        "EXT_MIN",      "ice_month", "all", "min",  "none", 2
+ "ice_model", "EXT",        "EXT_MAX",      "ice_month", "all", "max",  "none", 2
+ "ice_model", "FA_X",       "FA_X",         "ice_month", "all", "mean", "none", 2
+ "ice_model", "FA_Y",       "FA_Y",         "ice_month", "all", "mean", "none", 2
+ "ice_model", "FI_X",       "FI_X",         "ice_month", "all", "mean", "none", 2
+ "ice_model", "FI_Y",       "FI_Y",         "ice_month", "all", "mean", "none", 2
+ "ice_model", "FRAZIL",     "FRAZIL",       "ice_month", "all", "mean", "none", 2
+ "ice_model", "IX_TRANS",   "IX_TRANS",     "ice_month", "all", "mean", "none", 2
+ "ice_model", "IY_TRANS",   "IY_TRANS",     "ice_month", "all", "mean", "none", 2
+ "ice_model", "LH",         "LH",           "ice_month", "all", "mean", "none", 2
+ "ice_model", "LSNK",       "LSNK",         "ice_month", "all", "mean", "none", 2
+ "ice_model", "LSRC",       "LSRC",         "ice_month", "all", "mean", "none", 2
+ "ice_model", "LW",         "LW",           "ice_month", "all", "mean", "none", 2
+ "ice_model", "RAIN",       "RAIN",         "ice_month", "all", "mean", "none", 2
+ "ice_model", "RUNOFF",     "RUNOFF",       "ice_month", "all", "mean", "none", 2
+ "ice_model", "SALTF",      "SALTF",        "ice_month", "all", "mean", "none", 2
+ "ice_model", "SH",         "SH",           "ice_month", "all", "mean", "none", 2
+ "ice_model", "SNOWFL",     "SNOWFL",       "ice_month", "all", "mean", "none", 2
+ "ice_model", "SN2IC",      "SN2IC",        "ice_month", "all", "mean", "none", 2
+ "ice_model", "SSH",        "SSH",          "ice_month", "all", "mean", "none", 2
+ "ice_model", "SSS",        "SSS",          "ice_month", "all", "mean", "none", 2
+ "ice_model", "SST",        "SST",          "ice_month", "all", "mean", "none", 2
+ "ice_model", "SW",         "SW",           "ice_month", "all", "mean", "none", 2
+ "ice_model", "TMELT",      "TMELT",        "ice_month", "all", "mean", "none", 2
+ "ice_model", "TSN",        "TSN",          "ice_month", "all", "mean", "none", 2
+ "ice_model", "TS",         "TS",           "ice_month", "all", "mean", "none", 2
+ "ice_model", "T1",         "T1",           "ice_month", "all", "mean", "none", 2
+ "ice_model", "T2",         "T2",           "ice_month", "all", "mean", "none", 2
+ "ice_model", "T3",         "T3",           "ice_month", "all", "mean", "none", 2
+ "ice_model", "T4",         "T4",           "ice_month", "all", "mean", "none", 2
+ "ice_model", "UO",         "UO",           "ice_month", "all", "mean", "none", 2
+ "ice_model", "VO",         "VO",           "ice_month", "all", "mean", "none", 2
+ "ice_model", "XPRT",       "XPRT",         "ice_month", "all", "mean", "none", 2
+ "ice_model", "siu",        "siu",          "ice_month", "all", "mean", "none", 2
+ "ice_model", "siv",        "siv",          "ice_month", "all", "mean", "none", 2
+ "ice_model", "sispeed",    "sispeed",      "ice_month", "all", "mean", "none", 2
+ "ice_model", "STRENGTH_hf","STRENGTH_hf",  "ice_month", "all", "mean", "none", 2
+ "ice_model", "sitimefrac", "sitimefrac",   "ice_month", "all", "mean", "none", 2
+ "ice_model", "sitemptop",  "sitemptop",    "ice_month", "all", "mean", "none", 2
+ "ice_model", "siconc",     "siconc",       "ice_month", "all", "mean", "none", 2
+ "ice_model", "dCN",        "dCN",          "ice_month", "all", "mean", "none", 2
+ "ice_model", "sisnconc",   "sisnconc",     "ice_month", "all", "mean", "none", 2
+ "ice_model", "simass",     "simass",       "ice_month", "all", "mean", "none", 2
+ "ice_model", "sisnmass",   "sisnmass",     "ice_month", "all", "mean", "none", 2
+ "ice_model", "sisnthick",  "sisnthick",    "ice_month", "all", "mean", "none", 2
+ "ice_model", "sithick",    "sithick",      "ice_month", "all", "mean", "none", 2
+ "ice_model", "sivol",      "sivol",        "ice_month", "all", "mean", "none", 2
+ "ice_model", "MIB",        "MIB",          "ice_month", "all", "mean", "none", 2
+"icebergs", "BERG_MELT",   "BERG_MELT",  "iceberg_month", "all", .true., "none", 2
+"icebergs", "MASS",        "MASS",       "iceberg_month", "all", .true., "none", 2
+"icebergs", "MELT",        "MELT",       "iceberg_month", "all", .true., "none", 2
+#
+#===============================================================================
+# OCEAN DIAGNOSTICS:
+#=============================================================================== 
+"ocean_model", "Coriolis",               "Coriolis",               "ocean_static",        "all", "none", "none", 2
+"ocean_model", "area_t",                 "area_t",                 "ocean_static",        "all", "none", "none", 2
+"ocean_model", "areacello",              "areacello",              "ocean_static",        "all", "none", "none", 2
+"ocean_model", "areacello_bu",           "areacello_bu",           "ocean_static",        "all", "none", "none", 2
+"ocean_model", "areacello_cu",           "areacello_cu",           "ocean_static",        "all", "none", "none", 2
+"ocean_model", "areacello_cv",           "areacello_cv",           "ocean_static",        "all", "none", "none", 2
+"ocean_model", "depth_ocean",            "depth_ocean",            "ocean_static",        "all", "none", "none", 2
+"ocean_model", "deptho",                 "deptho",                 "ocean_static",        "all", "none", "none", 2
+"ocean_model", "dxCu",                   "dxCu",                   "ocean_static",        "all", "none", "none", 2
+"ocean_model", "dxCv",                   "dxCv",                   "ocean_static",        "all", "none", "none", 2
+"ocean_model", "dxt",                    "dxt",                    "ocean_static",        "all", "none", "none", 2
+"ocean_model", "dyCu",                   "dyCu",                   "ocean_static",        "all", "none", "none", 2
+"ocean_model", "dyCv",                   "dyCv",                   "ocean_static",        "all", "none", "none", 2
+"ocean_model", "dyt",                    "dyt",                    "ocean_static",        "all", "none", "none", 2
+"ocean_model", "geolat",                 "geolat",                 "ocean_static",        "all", "none", "none", 2
+"ocean_model", "geolat_c",               "geolat_c",               "ocean_static",        "all", "none", "none", 2
+"ocean_model", "geolat_u",               "geolat_u",               "ocean_static",        "all", "none", "none", 2
+"ocean_model", "geolat_v",               "geolat_v",               "ocean_static",        "all", "none", "none", 2
+"ocean_model", "geolon",                 "geolon",                 "ocean_static",        "all", "none", "none", 2
+"ocean_model", "geolon_c",               "geolon_c",               "ocean_static",        "all", "none", "none", 2
+"ocean_model", "geolon_u",               "geolon_u",               "ocean_static",        "all", "none", "none", 2
+"ocean_model", "geolon_v",               "geolon_v",               "ocean_static",        "all", "none", "none", 2
+"ocean_model", "sftof",                  "sftof",                  "ocean_static",        "all", "none", "none", 2
+"ocean_model", "wet",                    "wet",                    "ocean_static",        "all", "none", "none", 2
+"ocean_model", "wet_c",                  "wet_c",                  "ocean_static",        "all", "none", "none", 2
+"ocean_model", "wet_u",                  "wet_u",                  "ocean_static",        "all", "none", "none", 2
+"ocean_model", "wet_v",                  "wet_v",                  "ocean_static",        "all", "none", "none", 2
+"ocean_model", "Heat_PmE",                 "Heat_PmE",                   "ocean_month",     "all", "mean", "none",2
+"ocean_model", "LW",                       "LW",                         "ocean_month",     "all", "mean", "none",2
+"ocean_model", "LwLatSens",                "LwLatSens",                  "ocean_month",     "all", "mean", "none",2
+"ocean_model", "MLD_003",                  "MLD_003",                    "ocean_month",     "all", "mean", "none",2
+"ocean_model", "MLD_003",                  "MLD_003_max",                "ocean_month",     "all", "max",  "none",2
+"ocean_model", "MLD_003",                  "MLD_003_min",                "ocean_month",     "all", "min",  "none",2
+"ocean_model", "ML_buoy_restrat",          "ML_buoy_restrat",            "ocean_month",     "all", "mean", "none",2
+"ocean_model", "PRCmE",                    "PRCmE",                      "ocean_month",     "all", "mean", "none",2
+"ocean_model", "SSH",                      "ssh",                        "ocean_month",     "all", "mean", "none",2
+"ocean_model", "SSS",                      "sss",                        "ocean_month",     "all", "mean", "none",2
+"ocean_model", "SST",                      "SST",                        "ocean_month",     "all", "mean", "none",2
+"ocean_model", "SST",                      "sst_max",                    "ocean_month",     "all", "max",  "none",2
+"ocean_model", "SST",                      "sst_min",                    "ocean_month",     "all", "min",  "none",2
+"ocean_model", "SW",                       "SW",                         "ocean_month",     "all", "mean", "none",2
+"ocean_model", "S_adx_2d",                 "S_adx_2d",                   "ocean_month",     "all", "mean", "none",2
+"ocean_model", "S_ady_2d",                 "S_ady_2d",                   "ocean_month",     "all", "mean", "none",2
+"ocean_model", "TKE_tidal",                "TKE_tidal",                  "ocean_month",     "all", "mean", "none",2
+"ocean_model", "T_adx_2d",                 "T_adx_2d",                   "ocean_month",     "all", "mean", "none",2
+"ocean_model", "T_ady_2d",                 "T_ady_2d",                   "ocean_month",     "all", "mean", "none",2
+"ocean_model", "evap",                     "evap",                       "ocean_month",     "all", "mean", "none",2
+"ocean_model", "evs",                      "evs",                        "ocean_month",     "all", "mean", "none",2
+"ocean_model", "ficeberg",                 "ficeberg",                   "ocean_month",     "all", "mean", "none",2
+"ocean_model", "fprec",                    "fprec",                      "ocean_month",     "all", "mean", "none",2
+"ocean_model", "friver",                   "friver",                     "ocean_month",     "all", "mean", "none",2
+"ocean_model", "frunoff",                  "frunoff",                    "ocean_month",     "all", "mean", "none",2
+"ocean_model", "heat_content_cond",        "heat_content_cond",          "ocean_month",     "all", "mean", "none",2
+"ocean_model", "heat_content_fprec",       "heat_content_fprec",         "ocean_month",     "all", "mean", "none",2
+"ocean_model", "heat_content_frunoff",     "heat_content_frunoff",       "ocean_month",     "all", "mean", "none",2
+"ocean_model", "heat_content_lprec",       "heat_content_lprec",         "ocean_month",     "all", "mean", "none",2
+"ocean_model", "heat_content_lrunoff",     "heat_content_lrunoff",       "ocean_month",     "all", "mean", "none",2
+"ocean_model", "heat_content_massin",      "heat_content_massin",        "ocean_month",     "all", "mean", "none",2
+"ocean_model", "heat_content_massout",     "heat_content_massout",       "ocean_month",     "all", "mean", "none",2
+"ocean_model", "heat_content_surfwater",   "heat_content_surfwater",     "ocean_month",     "all", "mean", "none",2
+"ocean_model", "hfds",                     "hfds",                       "ocean_month",     "all", "mean", "none",2
+"ocean_model", "hfevapds",                 "hfevapds",                   "ocean_month",     "all", "mean", "none",2
+"ocean_model", "hfibthermds",              "hfibthermds",                "ocean_month",     "all", "mean", "none",2
+"ocean_model", "hflso",                    "hflso",                      "ocean_month",     "all", "mean", "none",2
+"ocean_model", "hfrainds",                 "hfrainds",                   "ocean_month",     "all", "mean", "none",2
+"ocean_model", "hfrunoffds",               "hfrunoffds",                 "ocean_month",     "all", "mean", "none",2
+"ocean_model", "hfsifrazil",               "hfsifrazil",                 "ocean_month",     "all", "mean", "none",2
+"ocean_model", "hfsnthermds",              "hfsnthermds",                "ocean_month",     "all", "mean", "none",2
+"ocean_model", "hfsso",                    "hfsso",                      "ocean_month",     "all", "mean", "none",2
+"ocean_model", "latent",                   "latent",                     "ocean_month",     "all", "mean", "none",2
+"ocean_model", "lprec",                    "lprec",                      "ocean_month",     "all", "mean", "none",2
+"ocean_model", "lrunoff",                  "lrunoff",                    "ocean_month",     "all", "mean", "none",2
+"ocean_model", "net_heat_coupler",         "net_heat_coupler",           "ocean_month",     "all", "mean", "none",2
+"ocean_model", "net_heat_surface",         "net_heat_surface",           "ocean_month",     "all", "mean", "none",2
+"ocean_model", "net_massin",               "net_massin",                 "ocean_month",     "all", "mean", "none",2
+"ocean_model", "net_massout",              "net_massout",                "ocean_month",     "all", "mean", "none",2
+"ocean_model", "p_surf",                   "p_surf",                     "ocean_month",     "all", "mean", "none",2
+"ocean_model", "prlq",                     "prlq",                       "ocean_month",     "all", "mean", "none",2
+"ocean_model", "prsn",                     "prsn",                       "ocean_month",     "all", "mean", "none",2
+"ocean_model", "rlntds",                   "rlntds",                     "ocean_month",     "all", "mean", "none",2
+"ocean_model", "rsntds",                   "rsntds",                     "ocean_month",     "all", "mean", "none",2
+"ocean_model", "salt_flux",                "salt_flux",                  "ocean_month",     "all", "mean", "none",2
+"ocean_model", "sensible",                 "sensible",                   "ocean_month",     "all", "mean", "none",2
+"ocean_model", "sfdsi",                    "sfdsi",                      "ocean_month",     "all", "mean", "none",2
+"ocean_model", "speed",                    "speed",                      "ocean_month",     "all", "mean", "none",2
+"ocean_model", "tauuo",                    "tauuo",                      "ocean_month",     "all", "mean", "none",2
+"ocean_model", "tauvo",                    "tauvo",                      "ocean_month",     "all", "mean", "none",2
+"ocean_model", "taux",                     "taux",                       "ocean_month",     "all", "mean", "none",2
+"ocean_model", "tauy",                     "tauy",                       "ocean_month",     "all", "mean", "none",2
+"ocean_model", "ustar",                    "ustar",                      "ocean_month",     "all", "mean", "none",2
+"ocean_model", "wfo",                      "wfo",                        "ocean_month",     "all", "mean", "none",2
+"ocean_model", "heat_added",               "heat_added",                 "ocean_month",     "all", "mean", "none",2
+"ocean_model", "salt_flux_added",          "salt_flux_added",            "ocean_month",     "all", "mean", "none",2
+#
+#===============================================================================
+# ATMOS DIAGNOSTICS:
+#=============================================================================== 
+# #########
+# grid_spec
+# #########
+"dynamics",  "grid_lon",           "grid_lon",       "grid_spec",   "all", .false.,  "none", 2
+"dynamics",  "grid_lat",           "grid_lat",       "grid_spec",   "all", .false.,  "none", 2
+"dynamics",  "grid_lont",          "grid_lont",      "grid_spec",   "all", .false.,  "none", 2
+"dynamics",  "grid_latt",          "grid_latt",      "grid_spec",   "all", .false.,  "none", 2
+"dynamics",  "area",               "area",           "grid_spec",   "all", .false.,  "none", 2
+"dynamics",  "bk",                 "bk",             "grid_spec",   "all", .false.,  "none", 2
+"dynamics",  "pk",                 "pk",             "grid_spec",   "all", .false.,  "none", 2
+"flux",      "land_mask",          "land_mask",      "grid_spec",   "all", .false.,  "none", 2
+"dynamics",  "zsurf",              "zsurf",          "grid_spec",   "all", .false.,  "none", 2
+"cloudrad",  "high_cld_amt",       "high_cld_amt",   "atmos_month", "all", .true.,  "none", 2
+"cloudrad",  "low_cld_amt",        "low_cld_amt",    "atmos_month", "all", .true.,  "none", 2
+"cloudrad",  "mid_cld_amt",        "mid_cld_amt",    "atmos_month", "all", .true.,  "none", 2
+"cloudrad",  "tot_cld_amt",        "tot_cld_amt",    "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "bk",                 "bk",             "atmos_month", "all", .false., "none", 2
+"dynamics",  "omega",              "omega",          "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "pk",                 "pk",             "atmos_month", "all", .false., "none", 2
+"dynamics",  "ps",                 "ps",             "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "slp",                "slp_dyn",        "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "sphum",              "sphum",          "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "temp",               "temp",           "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "ucomp",              "ucomp",          "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "uq",                 "uq",             "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "uq_vi",              "uq_vi",          "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "ut",                 "ut",             "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "ut_vi",              "ut_vi",          "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "uu",                 "uu",             "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "uu_vi",              "uu_vi",          "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "uv",                 "uv",             "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "uv_vi",              "uv_vi",          "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "vcomp",              "vcomp",          "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "vort850",            "vort850",        "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "vq",                 "vq",             "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "vq_vi",              "vq_vi",          "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "vt",                 "vt",             "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "vt_vi",              "vt_vi",          "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "vv",                 "vv",             "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "vv_vi",              "vv_vi",          "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "z200",               "z200",           "atmos_month", "all", .true.,  "none", 2
+"dynamics",  "zsurf",              "zsurf",          "atmos_month", "all", .false., "none", 2
+"flux",      "evap",               "evap",           "atmos_month", "all", .true.,  "none", 2
+"flux",      "ice_mask",           "ice_mask",       "atmos_month", "all", .true.,  "none", 2
+"flux",      "land_mask",          "land_mask",      "atmos_month", "all", .false., "none", 2
+"flux",      "lwflx",              "lwflx",          "atmos_month", "all", .true.,  "none", 2
+"flux",      "rh_ref",             "rh_ref",         "atmos_month", "all", .true.,  "none", 2
+"flux",      "shflx",              "shflx",          "atmos_month", "all", .true.,  "none", 2
+"flux",      "t_ref",              "t_ref",          "atmos_month", "all", .true.,  "none", 2
+"flux",      "t_ref",              "t_ref_max",      "atmos_month", "all",  max,    "none", 2
+"flux",      "t_ref",              "t_ref_min",      "atmos_month", "all",  min,    "none", 2
+"flux",      "t_surf",             "t_surf",         "atmos_month", "all", .true.,  "none", 2
+"flux",      "tau_x",              "tau_x",          "atmos_month", "all", .true.,  "none", 2
+"flux",      "tau_y",              "tau_y",          "atmos_month", "all", .true.,  "none", 2
+"flux",      "u_ref",              "u_ref",          "atmos_month", "all", .true.,  "none", 2
+"flux",      "v_ref",              "v_ref",          "atmos_month", "all", .true.,  "none", 2
+"moist",     "IWP",                "IWP",            "atmos_month", "all", .true.,  "none", 2
+"moist",     "LWP",                "LWP",            "atmos_month", "all", .true.,  "none", 2
+"moist",     "WVP",                "WVP",            "atmos_month", "all", .true.,  "none", 2
+"moist",     "prec_conv",          "prec_conv",      "atmos_month", "all", .true.,  "none", 2
+"moist",     "prec_ls",            "prec_ls",        "atmos_month", "all", .true.,  "none", 2
+"moist",     "precip",             "precip",         "atmos_month", "all", .true.,  "none", 2
+"moist",     "rh",                 "rh",             "atmos_month", "all", .true.,  "none", 2
+"moist",     "snow_conv",          "snow_conv",      "atmos_month", "all", .true.,  "none", 2
+"moist",     "snow_ls",            "snow_ls",        "atmos_month", "all", .true.,  "none", 2
+"moist",     "snow_tot",           "snow_tot",       "atmos_month", "all", .true.,  "none", 2
+"radiation", "alb_sfc",            "alb_sfc",        "atmos_month", "all", .true.,  "none", 2
+"radiation", "lwdn_sfc",           "lwdn_sfc",       "atmos_month", "all", .true.,  "none", 2
+"radiation", "lwdn_sfc_clr",       "lwdn_sfc_clr",   "atmos_month", "all", .true.,  "none", 2
+"radiation", "lwup_sfc",           "lwup_sfc",       "atmos_month", "all", .true.,  "none", 2
+"radiation", "lwup_sfc_clr",       "lwup_sfc_clr",   "atmos_month", "all", .true.,  "none", 2
+"radiation", "netrad_toa",         "netrad_toa",     "atmos_month", "all", .true.,  "none", 2
+"radiation", "olr",                "olr",            "atmos_month", "all", .true.,  "none", 2
+"radiation", "olr_clr",            "olr_clr",        "atmos_month", "all", .true.,  "none", 2
+"radiation", "qo3_col",            "qo3_col",        "atmos_month", "all", .true.,  "none", 2
+"radiation", "swdn_sfc",           "swdn_sfc",       "atmos_month", "all", .true.,  "none", 2
+"radiation", "swdn_sfc_clr",       "swdn_sfc_clr",   "atmos_month", "all", .true.,  "none", 2
+"radiation", "swdn_toa",           "swdn_toa",       "atmos_month", "all", .true.,  "none", 2
+"radiation", "swdn_toa_clr",       "swdn_toa_clr",   "atmos_month", "all", .true.,  "none", 2
+"radiation", "swup_sfc",           "swup_sfc",       "atmos_month", "all", .true.,  "none", 2
+"radiation", "swup_sfc_clr",       "swup_sfc_clr",   "atmos_month", "all", .true.,  "none", 2
+"radiation", "swup_toa",           "swup_toa",       "atmos_month", "all", .true.,  "none", 2
+"radiation", "swup_toa_clr",       "swup_toa_clr",   "atmos_month", "all", .true.,  "none", 2
+"flux",      "wind_ref",           "wind_ref",       "atmos_month", "all", .true.,  "none", 2
+EOF
+
+#FRE table(diag_table.yaml)
+cat >> field_table <<EOF
+# specific humidity for moist runs
+ "TRACER", "atmos_mod", "sphum" 
+           "longname", "specific humidity"
+           "units", "kg/kg" 
+	   "profile_type", "fixed", "surface_value=3.e-6" /
+# prognotic cloud scheme tracers
+  "TRACER", "atmos_mod", "liq_wat"
+            "longname", "cloud liquid specific humidity"
+            "units", "kg/kg" /
+  "TRACER", "atmos_mod", "ice_wat"
+            "longname", "cloud ice water specific humidity"
+            "units", "kg/kg" /
+  "TRACER", "atmos_mod", "cld_amt"
+            "longname", "cloud fraction"
+            "units", "none" /
+  "TRACER", "atmos_mod", "liq_drp"
+            "longname", "cloud droplet"
+            "units", "none" /
+# required by LM3
+  "TRACER", "land_mod", "sphum"
+           "longname",     "specific humidity"
+            "units",        "kg/kg" /
+  "TRACER", "land_mod",     "co2"
+           "longname",     "carbon dioxide"
+           "units",        "kg/kg" /
+ "TRACER", "atmos_mod", "SOA"
+           "longname", "SOA tracer"
+           "units", "mmr"
+           "convection", "all"
+           "profile_type","fixed","surface_value=1.e-32"
+           "dry_deposition","wind_driven","surfr=100."
+           "wet_deposition","aerosol_below","frac_incloud=0.2, frac_incloud_uw=0.3, frac_incloud_donner=0.3, frac_incloud_snow=0.0, alphar=0.001, alphas=0.001"
+           "radiative_param", "online", "name_in_rad_mod=omphilic, name_in_clim_mod=organic_carbon" /
+#                            
+ "TRACER", "atmos_mod", "dust1"
+           "longname", "dust1 tracer"
+           "units", "mmr"
+           "profile_type","fixed","surface_value=1.e-32"
+           "parameters", "all", "ra=0.1e-6, rb=1.0e-6, dustref=0.75e-6, dustden=2500.0"
+           "emission", "prescribed", "source_fraction=0.10"
+           "convection", "all"
+           "dry_deposition","wind_driven","surfr=100."
+           "wet_deposition","aerosol_below","frac_incloud=0.14, frac_incloud_uw=0.24, frac_incloud_donner=0.12, alphar=0.001, alphas=0.001"
+           "radiative_param", "online", "name_in_rad_mod=dust1, name_in_clim_mod=small_dust"/
+ "TRACER", "atmos_mod", "dust2"
+           "longname", "dust2 tracer"
+           "units", "mmr"
+           "profile_type","fixed","surface_value=1.e-32"
+           "parameters", "all", "ra=1.0e-6, rb=2.0e-6, dustref=1.5e-6, dustden=2650.0"
+           "emission", "prescribed", "source_fraction=0.225"
+           "convection", "all"
+           "dry_deposition","wind_driven","surfr=100."
+           "wet_deposition","aerosol_below","frac_incloud=0.14, frac_incloud_uw=0.24, frac_incloud_donner=0.12, alphar=0.001, alphas=0.001"
+           "radiative_param", "online", "name_in_rad_mod=dust2, name_in_clim_mod=large_dust"/
+ "TRACER", "atmos_mod", "dust3"
+           "longname", "dust3 tracer"
+           "units", "mmr"
+           "profile_type","fixed","surface_value=1.e-32"
+           "parameters", "all", "ra=2.0e-6, rb=3.0e-6, dustref=2.5e-6, dustden=2650.0"
+           "emission", "prescribed", "source_fraction=0.225"
+           "convection", "all"
+           "dry_deposition","wind_driven","surfr=100."
+           "wet_deposition","aerosol_below","frac_incloud=0.14, frac_incloud_uw=0.24, frac_incloud_donner=0.12, alphar=0.001, alphas=0.001"
+           "radiative_param", "online", "name_in_rad_mod=dust3, name_in_clim_mod=large_dust"/
+ "TRACER", "atmos_mod", "dust4"
+           "longname", "dust4 tracer"
+           "units", "mmr"
+           "profile_type","fixed","surface_value=1.e-32"
+           "parameters", "all", "ra=3.0e-6, rb=6.0e-6, dustref=4.5e-6, dustden=2650.0"
+           "emission", "prescribed", "source_fraction=0.225"
+           "convection", "all"
+           "dry_deposition","wind_driven","surfr=100."
+           "wet_deposition","aerosol_below","frac_incloud=0.14, frac_incloud_uw=0.24, frac_incloud_donner=0.12, alphar=0.001, alphas=0.001"
+           "radiative_param", "online", "name_in_rad_mod=dust4, name_in_clim_mod=large_dust"/
+ "TRACER", "atmos_mod", "dust5"
+           "longname", "dust5 tracer"
+           "units", "mmr"
+           "profile_type","fixed","surface_value=1.e-32"
+           "parameters", "all", "ra=6.0e-6, rb=10.0e-6, dustref=8e-6, dustden=2650.0"
+           "emission", "prescribed", "source_fraction=0.225"
+           "convection", "all"
+           "dry_deposition","wind_driven","surfr=100."
+           "wet_deposition","aerosol_below","frac_incloud=0.14, frac_incloud_uw=0.24, frac_incloud_donner=0.12, alphar=0.001, alphas=0.001"
+           "radiative_param", "online", "name_in_rad_mod=dust5, name_in_clim_mod=large_dust"/
+#
+ "TRACER", "atmos_mod", "simpleDMS"
+           "longname", "DMS tracer"
+           "units", "VMR"
+           "profile_type","fixed","surface_value=1.e-32"
+           "convection", "all"
+           "dry_deposition","fixed","land=0.11e-2, sea=0.09e-2"
+           "wet_deposition","henry_below","henry=4.74e-6, dependence=3100" /
+ "TRACER", "atmos_mod", "simpleSO2"
+           "longname", "SO2 tracer"
+           "units", "VMR"
+           "profile_type","fixed","surface_value=1.e-32"
+           "convection", "all"
+           "dry_deposition","fixed","land=0.25e-2, sea=0.6e-2"
+           "wet_deposition","henry_below_noice","henry=1.49e-2,dependence=5080." /
+ "TRACER", "atmos_mod", "simpleSO4"
+           "longname", "SO4 tracer"
+           "units", "VMR"
+           "profile_type","fixed","surface_value=1.e-32"
+           "convection", "all"
+           "dry_deposition","fixed","land=0.11e-2, sea=0.09e-2"
+           "wet_deposition","aerosol_below","frac_incloud=0.3, frac_incloud_uw=0.4, frac_incloud_donner=0.4, frac_incloud_snow=0.0, alphar=0.001, alphas=0.001"
+           "radiative_param", "online", "name_in_rad_mod=so4, name_in_clim_mod=sulfate, scale_factor=4.56" /
+ "TRACER", "atmos_mod", "simpleMSA"
+           "longname", "MSA tracer"
+           "units", "VMR"
+           "profile_type","fixed","surface_value=1.e-32"
+           "convection", "all"
+           "dry_deposition","fixed","land=0.11e-2, sea=0.09e-2"
+           "wet_deposition","aerosol_below","frac_incloud=0.3, frac_incloud_uw=0.6, frac_incloud_donner=0.6, alphar=0.001, alphas=0.001" /
+ "TRACER", "atmos_mod", "simpleH2O2"
+           "longname", "H2O2 tracer"
+           "units", "VMR"
+           "profile_type","fixed","surface_value=1.e-32"
+           "convection", "all"
+           "dry_deposition","fixed","land=0.1e-2, sea=0.1e-2"
+           "wet_deposition","henry_below","henry=7.35e-1,dependence=6620." /
+#
+ "TRACER", "atmos_mod", "ssalt1"
+           "longname", "ssalt 1 tracer"
+           "units", "mmr"
+           "profile_type","fixed","surface_value=1.e-32"
+           "parameters", "all", "ra=0.1e-6, rb=0.5e-6, ssaltref=0.3e-6, ssaltden=2200.0"
+           "scheme", "Martensson",
+           "convection", "all"
+           "dry_deposition","wind_driven","surfr=0.1"
+           "wet_deposition","aerosol_below","frac_incloud=0.2, frac_incloud_uw=0.4, frac_incloud_donner=0.4, alphar=0.001, alphas=0.001"
+           "radiative_param", "online", "name_in_rad_mod=seasalt1, name_in_clim_mod=sea_salt"/
+ "TRACER", "atmos_mod", "ssalt2"
+           "longname", "ssalt 2 tracer"
+           "units", "mmr"
+           "profile_type","fixed","surface_value=1.e-32"
+           "parameters", "all", "ra=0.5e-6, rb=1.0e-6, ssaltref=0.75e-6, ssaltden=2200.0"
+           "scheme", "Martensson",
+           "convection", "all"
+           "dry_deposition","wind_driven","surfr=0.1"
+           "wet_deposition","aerosol_below","frac_incloud=0.2, frac_incloud_uw=0.4, frac_incloud_donner=0.4, alphar=0.001, alphas=0.001"
+           "radiative_param", "online", "name_in_rad_mod=seasalt2, name_in_clim_mod=sea_salt"/
+ "TRACER", "atmos_mod", "ssalt3"
+           "longname", "ssalt 3 tracer"
+           "units", "mmr"
+           "profile_type","fixed","surface_value=1.e-32"
+           "parameters", "all", "ra=1.0e-6, rb=2.5e-6, ssaltref=1.75e-6, ssaltden=2200.0"
+           "scheme", "Martensson"
+           "convection", "all"
+           "dry_deposition","wind_driven","surfr=0.1"
+           "wet_deposition","aerosol_below","frac_incloud=0.2, frac_incloud_uw=0.4, frac_incloud_donner=0.4, alphar=0.001, alphas=0.001"
+           "radiative_param", "online", "name_in_rad_mod=seasalt3, name_in_clim_mod=sea_salt"/
+ "TRACER", "atmos_mod", "ssalt4"
+           "longname", "ssalt 4 tracer"
+           "units", "mmr"
+           "profile_type","fixed","surface_value=1.e-32"
+           "parameters", "all", "ra=2.5e-6, rb=5.0e-6, ssaltref=3.75e-6, ssaltden=2200.0"
+           "scheme", "Martensson"
+           "convection", "all"
+           "dry_deposition","wind_driven","surfr=0.1"
+           "wet_deposition","aerosol_below","frac_incloud=0.2, frac_incloud_uw=0.4, frac_incloud_donner=0.4, alphar=0.001, alphas=0.001"
+           "radiative_param", "online", "name_in_rad_mod=seasalt4, name_in_clim_mod=sea_salt"/
+ "TRACER", "atmos_mod", "ssalt5"
+           "longname", "ssalt 5 tracer"
+           "units", "mmr"
+           "profile_type","fixed","surface_value=1.e-32"
+           "parameters", "all", "ra=5.0e-6, rb=10.0e-6, ssaltref=7.5e-6, ssaltden=2200.0"
+           "scheme", "Martensson"
+           "convection", "all"
+           "dry_deposition","wind_driven","surfr=0.1"
+           "wet_deposition","aerosol_below","frac_incloud=0.2, frac_incloud_uw=0.4, frac_incloud_donner=0.4, alphar=0.001, alphas=0.001"
+           "radiative_param", "online", "name_in_rad_mod=seasalt5, name_in_clim_mod=sea_salt"/
+#
+ "TRACER", "atmos_mod", "bcphob"
+           "longname", "bcphob tracer"
+           "units", "mmr"
+           "profile_type","fixed","surface_value=1.e-32"
+           "convection", "all"
+           "dry_deposition","wind_driven","surfr=100."
+           "wet_deposition","aerosol_below","frac_incloud=0., alphar=0.001, alphas=0.001"
+           "radiative_param", "online", "name_in_rad_mod=bcphobic, name_in_clim_mod=black_carbon"/
+ "TRACER", "atmos_mod", "bcphil"
+           "longname", "bcphil tracer"
+           "units", "mmr"
+           "profile_type","fixed","surface_value=1.e-32"
+           "convection", "all"
+           "dry_deposition","wind_driven","surfr=100."
+           "wet_deposition","aerosol_below","frac_incloud=0.2, frac_incloud_uw=0.3, frac_incloud_donner=0.3, frac_incloud_snow=0.0, alphar=0.001, alphas=0.001"
+           "radiative_param", "online", "name_in_rad_mod=bcphilic, name_in_clim_mod=black_carbon"/
+ "TRACER", "atmos_mod", "omphob"
+           "longname", "omphob tracer"
+           "units", "mmr"
+           "profile_type","fixed","surface_value=1.e-32"
+           "convection", "all"
+           "dry_deposition","wind_driven","surfr=100."
+           "wet_deposition","aerosol_below","frac_incloud=0., alphar=0.001, alphas=0.001"
+           "radiative_param", "online", "name_in_rad_mod=omphobic, name_in_clim_mod=organic_carbon"/
+ "TRACER", "atmos_mod", "omphil"
+           "longname", "omphil tracer"
+           "units", "mmr"
+           "profile_type","fixed","surface_value=1.e-32"
+           "convection", "all"
+           "dry_deposition","wind_driven","surfr=100."
+           "wet_deposition","aerosol_below","frac_incloud=0.2, frac_incloud_uw=0.3, frac_incloud_donner=0.3, frac_incloud_snow=0.0, alphar=0.001, alphas=0.001"
+           "radiative_param", "online", "name_in_rad_mod=omphilic, name_in_clim_mod=organic_carbon"/
+"tracer","atmos_mod","oh"
+          "longname","OH"
+          "units","VMR"
+          "tracer_type","diagnostic"
+"profile_type","fixed","surface_value=5.e-14"
+/
+# optional: add radon as tracer
+"tracer","atmos_mod","radon"
+"longname","radon-222"
+"units","VMR*1E21"
+"profile_type","fixed","surface_value=0.0E+00"
+"convection","all"
+/
+EOF
+
+#FRE table(field_table.yaml)
+cat >> data_table <<EOF
+"LND", "phot_co2","co2", "INPUT/co2_data.nc",         "bilinear", 1.e-6
+EOF
+
+#FRE table(data_table.yaml)
+
+
+
+cat > input.nml.unexpanded <<\EOF
+ &MOM_input_nml
+         output_directory = './',
+         input_filename = "MOM.res.ens_%2E.nc"
+         restart_input_dir = 'INPUT/',
+         restart_output_dir = 'RESTART/',
+         parameter_filename = 'INPUT/MOM_input','INPUT/MOM_layout','INPUT/MOM_override_%2E'
+/
+
+ &SIS_input_nml
+         output_directory = './',
+         input_filename = '$sis_restart_flag'
+         restart_input_dir = 'INPUT/',
+         restart_output_dir = 'RESTART/',
+         parameter_filename = 'INPUT/SIS_input','INPUT/SIS_layout','INPUT/SIS_override'
+/
+
+ &aer_ccn_act_nml
+      sul_concen  = 0.01
+      low_concen  = 0.01
+      high_concen = 1.0
+/
+
+ &aerosol_cloud_nml
+        var_limit = 0.7
+/
+
+ &aerosol_nml
+    family_names = "small_dust", "large_dust", "black_carbon","organic_carbon", "sea_salt", "sulfate", "aerosol", "pm2.5", "dust", "POA"
+    in_family1 = F,T,F,F,F,F,F,F,F,F,F,F,F,F,F,F,
+    in_family2 = F,F,T,T,T,T,F,F,F,F,F,F,F,F,F,F,
+    in_family3 = F,F,F,F,F,F,F,F,F,F,F,F,T,T,F,F,
+    in_family4 = T,F,F,F,F,F,F,F,F,F,F,F,F,F,T,T,
+    in_family5 = F,F,F,F,F,F,F,T,T,T,T,T,F,F,F,F,
+    in_family6 = F,F,F,F,F,F,T,F,F,F,F,F,F,F,F,F,
+    in_family7 = T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,
+    in_family8 = T,T,F,F,F,F,T,T,T,F,F,F,T,T,T,T,
+    in_family9 = F,T,T,T,T,T,F,F,F,F,F,F,F,F,F,F,
+    in_family10= F,F,F,F,F,F,F,F,F,F,F,F,F,F,T,T,
+    aerosol_data_source = "predicted"
+/
+
+ &aerosolrad_driver_nml
+        do_swaerosol_forcing = .false.
+        do_lwaerosol_forcing = .false.
+/
+
+ &aerosolrad_package_nml
+    force_to_repro_quebec = .true.
+    using_im_bcsul = .true.
+    volcanic_dataset_entry = $baseDate
+    using_volcanic_lw_files = .true.,
+    lw_ext_filename = "extlw_data.nc"
+    lw_ext_root = "extlw"
+    lw_asy_filename = "             "
+    lw_asy_root = "     "
+    lw_ssa_filename = "             "
+    lw_ssa_root = "     "
+    using_volcanic_sw_files = .true.,
+    sw_ext_filename = "extsw_data.nc"
+    sw_ext_root = "extsw"
+    sw_ssa_filename = "omgsw_data.nc"
+    sw_ssa_root = "omgsw"
+    sw_asy_filename = "asmsw_data.nc"
+    sw_asy_root = "asmsw"
+    do_lwaerosol = .true.,
+    do_swaerosol = .true.,
+    aerosol_data_set = "Ginoux_Reddy"
+    optical_filename = "AM4_201510",
+    sulfate_indices = 30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,35,35,35,35,35,40,40,40,40,40,45,45,45,45,45,
+                      50,50,50,50,50,55,55,55,55,55,60,60,60,60,60,65,
+                      65,65,65,65,70,70,70,70,70,75,75,75,75,75,80,80,
+                      80,80,82,82,84,84,86,86,88,88,90,91,92,93,94,95,
+                      96,97,97,97,97, 
+    nitrate_indices = 30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,35,35,35,35,35,40,40,40,40,40,45,45,45,45,45,
+                      50,50,50,50,50,55,55,55,55,55,60,60,60,60,60,65,
+                      65,65,65,65,70,70,70,70,70,75,75,75,75,75,80,80,
+                      80,80,82,82,84,84,86,86,88,88,90,91,92,93,94,95,
+                      96,97,97,97,97, 
+    omphilic_indices = 30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,35,35,35,35,35,40,40,40,40,40,45,45,45,45,45,
+                      50,50,50,50,50,55,55,55,55,55,60,60,60,60,60,65,
+                      65,65,65,65,70,70,70,70,70,75,75,75,75,75,80,80,
+                      80,80,82,82,84,84,86,86,88,88,90,91,92,93,94,95,
+                      96,97,97,97,97, 
+    bcphilic_indices = 30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,35,35,35,35,35,40,40,40,40,40,45,45,45,45,45,
+                      50,50,50,50,50,55,55,55,55,55,60,60,60,60,60,65,
+                      65,65,65,65,70,70,70,70,70,75,75,75,75,75,80,80,
+                      80,80,82,82,84,84,86,86,88,88,90,91,92,93,94,95,
+                      96,97,97,97,97, 
+    seasalt1_indices = 30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,35,35,35,35,35,40,40,40,40,40,45,45,45,45,45,
+                      50,50,50,50,50,55,55,55,55,55,60,60,60,60,60,65,
+                      65,65,65,65,70,70,70,70,70,75,75,75,75,75,80,80,
+                      80,80,82,82,84,84,86,86,88,88,90,91,92,93,94,95,
+                      96,97,97,97,97, 
+    seasalt2_indices = 30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,35,35,35,35,35,40,40,40,40,40,45,45,45,45,45,
+                      50,50,50,50,50,55,55,55,55,55,60,60,60,60,60,65,
+                      65,65,65,65,70,70,70,70,70,75,75,75,75,75,80,80,
+                      80,80,82,82,84,84,86,86,88,88,90,91,92,93,94,95,
+                      96,97,97,97,97, 
+    seasalt3_indices = 30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,35,35,35,35,35,40,40,40,40,40,45,45,45,45,45,
+                      50,50,50,50,50,55,55,55,55,55,60,60,60,60,60,65,
+                      65,65,65,65,70,70,70,70,70,75,75,75,75,75,80,80,
+                      80,80,82,82,84,84,86,86,88,88,90,91,92,93,94,95,
+                      96,97,97,97,97, 
+    seasalt4_indices = 30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,35,35,35,35,35,40,40,40,40,40,45,45,45,45,45,
+                      50,50,50,50,50,55,55,55,55,55,60,60,60,60,60,65,
+                      65,65,65,65,70,70,70,70,70,75,75,75,75,75,80,80,
+                      80,80,82,82,84,84,86,86,88,88,90,91,92,93,94,95,
+                      96,97,97,97,97, 
+    seasalt5_indices = 30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,35,35,35,35,35,40,40,40,40,40,45,45,45,45,45,
+                      50,50,50,50,50,55,55,55,55,55,60,60,60,60,60,65,
+                      65,65,65,65,70,70,70,70,70,75,75,75,75,75,80,80,
+                      80,80,82,82,84,84,86,86,88,88,90,91,92,93,94,95,
+                      96,97,97,97,97, 
+    seasalt_aitken_indices = 30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,35,35,35,35,35,40,40,40,40,40,45,45,45,45,45,
+                      50,50,50,50,50,55,55,55,55,55,60,60,60,60,60,65,
+                      65,65,65,65,70,70,70,70,70,75,75,75,75,75,80,80,
+                      80,80,82,82,84,84,86,86,88,88,90,91,92,93,94,95,
+                      96,97,97,97,97,
+    seasalt_fine_indices = 30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,35,35,35,35,35,40,40,40,40,40,45,45,45,45,45,
+                      50,50,50,50,50,55,55,55,55,55,60,60,60,60,60,65,
+                      65,65,65,65,70,70,70,70,70,75,75,75,75,75,80,80,
+                      80,80,82,82,84,84,86,86,88,88,90,91,92,93,94,95,
+                      96,97,97,97,97,
+    seasalt_coarse_indices = 30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,
+                      30,35,35,35,35,35,40,40,40,40,40,45,45,45,45,45,
+                      50,50,50,50,50,55,55,55,55,55,60,60,60,60,60,65,
+                      65,65,65,65,70,70,70,70,70,75,75,75,75,75,80,80,
+                      80,80,82,82,84,84,86,86,88,88,90,91,92,93,94,95,
+                      96,97,97,97,97,
+    aerosol_optical_names = "sulfate_30%_100%","sulfate_35%_100%","sulfate_40%_100%","sulfate_45%_100%","sulfate_50%_100%",
+"sulfate_55%_100%","sulfate_60%_100%","sulfate_65%_100%","sulfate_70%_100%","sulfate_75%_100%",
+"sulfate_80%_100%","sulfate_82%_100%","sulfate_84%_100%","sulfate_86%_100%","sulfate_88%_100%",
+"sulfate_90%_100%","sulfate_91%_100%","sulfate_92%_100%","sulfate_93%_100%","sulfate_94%_100%",
+"sulfate_95%_100%","sulfate_96%_100%","sulfate_97%_100%","sulfate_98%_100%","sulfate_99%_100%",
+"sulfate_100%_100%","sulfate_30%_98%","sulfate_35%_98%","sulfate_40%_98%","sulfate_45%_98%",
+"sulfate_50%_98%","sulfate_55%_98%","sulfate_60%_98%","sulfate_65%_98%","sulfate_70%_98%",
+"sulfate_75%_98%","sulfate_80%_98%","sulfate_82%_98%","sulfate_84%_98%","sulfate_86%_98%",
+"sulfate_88%_98%","sulfate_90%_98%","sulfate_91%_98%","sulfate_92%_98%","sulfate_93%_98%",
+"sulfate_94%_98%","sulfate_95%_98%","sulfate_96%_98%","sulfate_97%_98%","sulfate_98%_98%",
+"sulfate_99%_98%","sulfate_100%_98%","sulfate_30%_96%","sulfate_35%_96%","sulfate_40%_96%",
+"sulfate_45%_96%","sulfate_50%_96%","sulfate_55%_96%","sulfate_60%_96%","sulfate_65%_96%",
+"sulfate_70%_96%","sulfate_75%_96%","sulfate_80%_96%","sulfate_82%_96%","sulfate_84%_96%",
+"sulfate_86%_96%","sulfate_88%_96%","sulfate_90%_96%","sulfate_91%_96%","sulfate_92%_96%",
+"sulfate_93%_96%","sulfate_94%_96%","sulfate_95%_96%","sulfate_96%_96%","sulfate_97%_96%",
+"sulfate_98%_96%","sulfate_99%_96%","sulfate_100%_96%","sulfate_30%_94%","sulfate_35%_94%",
+"sulfate_40%_94%","sulfate_45%_94%","sulfate_50%_94%","sulfate_55%_94%","sulfate_60%_94%",
+"sulfate_65%_94%","sulfate_70%_94%","sulfate_75%_94%","sulfate_80%_94%","sulfate_82%_94%",
+"sulfate_84%_94%","sulfate_86%_94%","sulfate_88%_94%","sulfate_90%_94%","sulfate_91%_94%",
+"sulfate_92%_94%","sulfate_93%_94%","sulfate_94%_94%","sulfate_95%_94%","sulfate_96%_94%",
+"sulfate_97%_94%","sulfate_98%_94%","sulfate_99%_94%","sulfate_100%_94%","sulfate_30%_92%",
+"sulfate_35%_92%","sulfate_40%_92%","sulfate_45%_92%","sulfate_50%_92%","sulfate_55%_92%",
+"sulfate_60%_92%","sulfate_65%_92%","sulfate_70%_92%","sulfate_75%_92%","sulfate_80%_92%",
+"sulfate_82%_92%","sulfate_84%_92%","sulfate_86%_92%","sulfate_88%_92%","sulfate_90%_92%",
+"sulfate_91%_92%","sulfate_92%_92%","sulfate_93%_92%","sulfate_94%_92%","sulfate_95%_92%",
+"sulfate_96%_92%","sulfate_97%_92%","sulfate_98%_92%","sulfate_99%_92%","sulfate_100%_92%",
+"sulfate_30%_90%","sulfate_35%_90%","sulfate_40%_90%","sulfate_45%_90%","sulfate_50%_90%",
+"sulfate_55%_90%","sulfate_60%_90%","sulfate_65%_90%","sulfate_70%_90%","sulfate_75%_90%",
+"sulfate_80%_90%","sulfate_82%_90%","sulfate_84%_90%","sulfate_86%_90%","sulfate_88%_90%",
+"sulfate_90%_90%","sulfate_91%_90%","sulfate_92%_90%","sulfate_93%_90%","sulfate_94%_90%",
+"sulfate_95%_90%","sulfate_96%_90%","sulfate_97%_90%","sulfate_98%_90%","sulfate_99%_90%",
+"sulfate_100%_90%","sulfate_30%_88%","sulfate_35%_88%","sulfate_40%_88%","sulfate_45%_88%",
+"sulfate_50%_88%","sulfate_55%_88%","sulfate_60%_88%","sulfate_65%_88%","sulfate_70%_88%",
+"sulfate_75%_88%","sulfate_80%_88%","sulfate_82%_88%","sulfate_84%_88%","sulfate_86%_88%",
+"sulfate_88%_88%","sulfate_90%_88%","sulfate_91%_88%","sulfate_92%_88%","sulfate_93%_88%",
+"sulfate_94%_88%","sulfate_95%_88%","sulfate_96%_88%","sulfate_97%_88%","sulfate_98%_88%",
+"sulfate_99%_88%","sulfate_100%_88%","sulfate_30%_86%","sulfate_35%_86%","sulfate_40%_86%",
+"sulfate_45%_86%","sulfate_50%_86%","sulfate_55%_86%","sulfate_60%_86%","sulfate_65%_86%",
+"sulfate_70%_86%","sulfate_75%_86%","sulfate_80%_86%","sulfate_82%_86%","sulfate_84%_86%",
+"sulfate_86%_86%","sulfate_88%_86%","sulfate_90%_86%","sulfate_91%_86%","sulfate_92%_86%",
+"sulfate_93%_86%","sulfate_94%_86%","sulfate_95%_86%","sulfate_96%_86%","sulfate_97%_86%",
+"sulfate_98%_86%","sulfate_99%_86%","sulfate_100%_86%","sulfate_30%_84%","sulfate_35%_84%",
+"sulfate_40%_84%","sulfate_45%_84%","sulfate_50%_84%","sulfate_55%_84%","sulfate_60%_84%",
+"sulfate_65%_84%","sulfate_70%_84%","sulfate_75%_84%","sulfate_80%_84%","sulfate_82%_84%",
+"sulfate_84%_84%","sulfate_86%_84%","sulfate_88%_84%","sulfate_90%_84%","sulfate_91%_84%",
+"sulfate_92%_84%","sulfate_93%_84%","sulfate_94%_84%","sulfate_95%_84%","sulfate_96%_84%",
+"sulfate_97%_84%","sulfate_98%_84%","sulfate_99%_84%","sulfate_100%_84%","sulfate_30%_82%",
+"sulfate_35%_82%","sulfate_40%_82%","sulfate_45%_82%","sulfate_50%_82%","sulfate_55%_82%",
+"sulfate_60%_82%","sulfate_65%_82%","sulfate_70%_82%","sulfate_75%_82%","sulfate_80%_82%",
+"sulfate_82%_82%","sulfate_84%_82%","sulfate_86%_82%","sulfate_88%_82%","sulfate_90%_82%",
+"sulfate_91%_82%","sulfate_92%_82%","sulfate_93%_82%","sulfate_94%_82%","sulfate_95%_82%",
+"sulfate_96%_82%","sulfate_97%_82%","sulfate_98%_82%","sulfate_99%_82%","sulfate_100%_82%",
+"sulfate_30%_80%","sulfate_35%_80%","sulfate_40%_80%","sulfate_45%_80%","sulfate_50%_80%",
+"sulfate_55%_80%","sulfate_60%_80%","sulfate_65%_80%","sulfate_70%_80%","sulfate_75%_80%",
+"sulfate_80%_80%","sulfate_82%_80%","sulfate_84%_80%","sulfate_86%_80%","sulfate_88%_80%",
+"sulfate_90%_80%","sulfate_91%_80%","sulfate_92%_80%","sulfate_93%_80%","sulfate_94%_80%",
+"sulfate_95%_80%","sulfate_96%_80%","sulfate_97%_80%","sulfate_98%_80%","sulfate_99%_80%",
+"sulfate_100%_80%","sulfate_30%_75%","sulfate_35%_75%","sulfate_40%_75%","sulfate_45%_75%",
+"sulfate_50%_75%","sulfate_55%_75%","sulfate_60%_75%","sulfate_65%_75%","sulfate_70%_75%",
+"sulfate_75%_75%","sulfate_80%_75%","sulfate_82%_75%","sulfate_84%_75%","sulfate_86%_75%",
+"sulfate_88%_75%","sulfate_90%_75%","sulfate_91%_75%","sulfate_92%_75%","sulfate_93%_75%",
+"sulfate_94%_75%","sulfate_95%_75%","sulfate_96%_75%","sulfate_97%_75%","sulfate_98%_75%",
+"sulfate_99%_75%","sulfate_100%_75%","sulfate_30%_70%","sulfate_35%_70%","sulfate_40%_70%",
+"sulfate_45%_70%","sulfate_50%_70%","sulfate_55%_70%","sulfate_60%_70%","sulfate_65%_70%",
+"sulfate_70%_70%","sulfate_75%_70%","sulfate_80%_70%","sulfate_82%_70%","sulfate_84%_70%",
+"sulfate_86%_70%","sulfate_88%_70%","sulfate_90%_70%","sulfate_91%_70%","sulfate_92%_70%",
+"sulfate_93%_70%","sulfate_94%_70%","sulfate_95%_70%","sulfate_96%_70%","sulfate_97%_70%",
+"sulfate_98%_70%","sulfate_99%_70%","sulfate_100%_70%","sulfate_30%_65%","sulfate_35%_65%",
+"sulfate_40%_65%","sulfate_45%_65%","sulfate_50%_65%","sulfate_55%_65%","sulfate_60%_65%",
+"sulfate_65%_65%","sulfate_70%_65%","sulfate_75%_65%","sulfate_80%_65%","sulfate_82%_65%",
+"sulfate_84%_65%","sulfate_86%_65%","sulfate_88%_65%","sulfate_90%_65%","sulfate_91%_65%",
+"sulfate_92%_65%","sulfate_93%_65%","sulfate_94%_65%","sulfate_95%_65%","sulfate_96%_65%",
+"sulfate_97%_65%","sulfate_98%_65%","sulfate_99%_65%","sulfate_100%_65%","sulfate_30%_60%",
+"sulfate_35%_60%","sulfate_40%_60%","sulfate_45%_60%","sulfate_50%_60%","sulfate_55%_60%",
+"sulfate_60%_60%","sulfate_65%_60%","sulfate_70%_60%","sulfate_75%_60%","sulfate_80%_60%",
+"sulfate_82%_60%","sulfate_84%_60%","sulfate_86%_60%","sulfate_88%_60%","sulfate_90%_60%",
+"sulfate_91%_60%","sulfate_92%_60%","sulfate_93%_60%","sulfate_94%_60%","sulfate_95%_60%",
+"sulfate_96%_60%","sulfate_97%_60%","sulfate_98%_60%","sulfate_99%_60%","sulfate_100%_60%",
+"sulfate_30%_55%","sulfate_35%_55%","sulfate_40%_55%","sulfate_45%_55%","sulfate_50%_55%",
+"sulfate_55%_55%","sulfate_60%_55%","sulfate_65%_55%","sulfate_70%_55%","sulfate_75%_55%",
+"sulfate_80%_55%","sulfate_82%_55%","sulfate_84%_55%","sulfate_86%_55%","sulfate_88%_55%",
+"sulfate_90%_55%","sulfate_91%_55%","sulfate_92%_55%","sulfate_93%_55%","sulfate_94%_55%",
+"sulfate_95%_55%","sulfate_96%_55%","sulfate_97%_55%","sulfate_98%_55%","sulfate_99%_55%",
+"sulfate_100%_55%","sulfate_30%_50%","sulfate_35%_50%","sulfate_40%_50%","sulfate_45%_50%",
+"sulfate_50%_50%","sulfate_55%_50%","sulfate_60%_50%","sulfate_65%_50%","sulfate_70%_50%",
+"sulfate_75%_50%","sulfate_80%_50%","sulfate_82%_50%","sulfate_84%_50%","sulfate_86%_50%",
+"sulfate_88%_50%","sulfate_90%_50%","sulfate_91%_50%","sulfate_92%_50%","sulfate_93%_50%",
+"sulfate_94%_50%","sulfate_95%_50%","sulfate_96%_50%","sulfate_97%_50%","sulfate_98%_50%",
+"sulfate_99%_50%","sulfate_100%_50%","sulfate_30%_45%","sulfate_35%_45%","sulfate_40%_45%",
+"sulfate_45%_45%","sulfate_50%_45%","sulfate_55%_45%","sulfate_60%_45%","sulfate_65%_45%",
+"sulfate_70%_45%","sulfate_75%_45%","sulfate_80%_45%","sulfate_82%_45%","sulfate_84%_45%",
+"sulfate_86%_45%","sulfate_88%_45%","sulfate_90%_45%","sulfate_91%_45%","sulfate_92%_45%",
+"sulfate_93%_45%","sulfate_94%_45%","sulfate_95%_45%","sulfate_96%_45%","sulfate_97%_45%",
+"sulfate_98%_45%","sulfate_99%_45%","sulfate_100%_45%","sulfate_30%_40%","sulfate_35%_40%",
+"sulfate_40%_40%","sulfate_45%_40%","sulfate_50%_40%","sulfate_55%_40%","sulfate_60%_40%",
+"sulfate_65%_40%","sulfate_70%_40%","sulfate_75%_40%","sulfate_80%_40%","sulfate_82%_40%",
+"sulfate_84%_40%","sulfate_86%_40%","sulfate_88%_40%","sulfate_90%_40%","sulfate_91%_40%",
+"sulfate_92%_40%","sulfate_93%_40%","sulfate_94%_40%","sulfate_95%_40%","sulfate_96%_40%",
+"sulfate_97%_40%","sulfate_98%_40%","sulfate_99%_40%","sulfate_100%_40%","sulfate_30%_35%",
+"sulfate_35%_35%","sulfate_40%_35%","sulfate_45%_35%","sulfate_50%_35%","sulfate_55%_35%",
+"sulfate_60%_35%","sulfate_65%_35%","sulfate_70%_35%","sulfate_75%_35%","sulfate_80%_35%",
+"sulfate_82%_35%","sulfate_84%_35%","sulfate_86%_35%","sulfate_88%_35%","sulfate_90%_35%",
+"sulfate_91%_35%","sulfate_92%_35%","sulfate_93%_35%","sulfate_94%_35%","sulfate_95%_35%",
+"sulfate_96%_35%","sulfate_97%_35%","sulfate_98%_35%","sulfate_99%_35%","sulfate_100%_35%",
+"sulfate_30%_30%","sulfate_35%_30%","sulfate_40%_30%","sulfate_45%_30%","sulfate_50%_30%",
+"sulfate_55%_30%","sulfate_60%_30%","sulfate_65%_30%","sulfate_70%_30%","sulfate_75%_30%",
+"sulfate_80%_30%","sulfate_82%_30%","sulfate_84%_30%","sulfate_86%_30%","sulfate_88%_30%",
+"sulfate_90%_30%","sulfate_91%_30%","sulfate_92%_30%","sulfate_93%_30%","sulfate_94%_30%",
+"sulfate_95%_30%","sulfate_96%_30%","sulfate_97%_30%","sulfate_98%_30%","sulfate_99%_30%",
+"sulfate_100%_30%","sulfate_30%_25%","sulfate_35%_25%","sulfate_40%_25%","sulfate_45%_25%",
+"sulfate_50%_25%","sulfate_55%_25%","sulfate_60%_25%","sulfate_65%_25%","sulfate_70%_25%",
+"sulfate_75%_25%","sulfate_80%_25%","sulfate_82%_25%","sulfate_84%_25%","sulfate_86%_25%",
+"sulfate_88%_25%","sulfate_90%_25%","sulfate_91%_25%","sulfate_92%_25%","sulfate_93%_25%",
+"sulfate_94%_25%","sulfate_95%_25%","sulfate_96%_25%","sulfate_97%_25%","sulfate_98%_25%",
+"sulfate_99%_25%","sulfate_100%_25%","sulfate_30%_20%","sulfate_35%_20%","sulfate_40%_20%",
+"sulfate_45%_20%","sulfate_50%_20%","sulfate_55%_20%","sulfate_60%_20%","sulfate_65%_20%",
+"sulfate_70%_20%","sulfate_75%_20%","sulfate_80%_20%","sulfate_82%_20%","sulfate_84%_20%",
+"sulfate_86%_20%","sulfate_88%_20%","sulfate_90%_20%","sulfate_91%_20%","sulfate_92%_20%",
+"sulfate_93%_20%","sulfate_94%_20%","sulfate_95%_20%","sulfate_96%_20%","sulfate_97%_20%",
+"sulfate_98%_20%","sulfate_99%_20%","sulfate_100%_20%","sulfate_30%_15%","sulfate_35%_15%",
+"sulfate_40%_15%","sulfate_45%_15%","sulfate_50%_15%","sulfate_55%_15%","sulfate_60%_15%",
+"sulfate_65%_15%","sulfate_70%_15%","sulfate_75%_15%","sulfate_80%_15%","sulfate_82%_15%",
+"sulfate_84%_15%","sulfate_86%_15%","sulfate_88%_15%","sulfate_90%_15%","sulfate_91%_15%",
+"sulfate_92%_15%","sulfate_93%_15%","sulfate_94%_15%","sulfate_95%_15%","sulfate_96%_15%",
+"sulfate_97%_15%","sulfate_98%_15%","sulfate_99%_15%","sulfate_100%_15%","sulfate_30%_10%",
+"sulfate_35%_10%","sulfate_40%_10%","sulfate_45%_10%","sulfate_50%_10%","sulfate_55%_10%",
+"sulfate_60%_10%","sulfate_65%_10%","sulfate_70%_10%","sulfate_75%_10%","sulfate_80%_10%",
+"sulfate_82%_10%","sulfate_84%_10%","sulfate_86%_10%","sulfate_88%_10%","sulfate_90%_10%",
+"sulfate_91%_10%","sulfate_92%_10%","sulfate_93%_10%","sulfate_94%_10%","sulfate_95%_10%",
+"sulfate_96%_10%","sulfate_97%_10%","sulfate_98%_10%","sulfate_99%_10%","sulfate_100%_10%",
+"sulfate_30%_5%","sulfate_35%_5%","sulfate_40%_5%","sulfate_45%_5%","sulfate_50%_5%",
+"sulfate_55%_5%","sulfate_60%_5%","sulfate_65%_5%","sulfate_70%_5%","sulfate_75%_5%",
+"sulfate_80%_5%","sulfate_82%_5%","sulfate_84%_5%","sulfate_86%_5%","sulfate_88%_5%",
+"sulfate_90%_5%","sulfate_91%_5%","sulfate_92%_5%","sulfate_93%_5%","sulfate_94%_5%",
+"sulfate_95%_5%","sulfate_96%_5%","sulfate_97%_5%","sulfate_98%_5%","sulfate_99%_5%",
+"sulfate_100%_5%","sulfate_30%_0%","sulfate_35%_0%","sulfate_40%_0%","sulfate_45%_0%",
+"sulfate_50%_0%","sulfate_55%_0%","sulfate_60%_0%","sulfate_65%_0%","sulfate_70%_0%",
+"sulfate_75%_0%","sulfate_80%_0%","sulfate_82%_0%","sulfate_84%_0%","sulfate_86%_0%",
+"sulfate_88%_0%","sulfate_90%_0%","sulfate_91%_0%","sulfate_92%_0%","sulfate_93%_0%",
+"sulfate_94%_0%","sulfate_95%_0%","sulfate_96%_0%","sulfate_97%_0%","sulfate_98%_0%",
+"sulfate_99%_0%","sulfate_100%_0%",
+                            "organic_carbon","soot",
+                            "sea_salt",    "dust_0.1",    "dust_0.2",    "dust_0.4",
+                            "dust_0.8",    "dust_1.0",    "dust_2.0",    "dust_4.0",
+                            "dust_8.0",
+                            "dust1",       "dust2",         "dust3",        "dust4",
+                            "dust5",       "bcphobic",      "omphobic",     "bcdry"
+                            "omphilic_30%", "omphilic_35%", "omphilic_40%", "omphilic_45%",
+                            "omphilic_50%", "omphilic_55%", "omphilic_60%", "omphilic_65%",
+                            "omphilic_70%", "omphilic_75%", "omphilic_80%", "omphilic_82%",
+                            "omphilic_84%", "omphilic_86%", "omphilic_88%", "omphilic_90%",
+                            "omphilic_91%", "omphilic_92%", "omphilic_93%", "omphilic_94%",
+                            "omphilic_95%", "omphilic_96%", "omphilic_97%", "omphilic_98%",
+                            "omphilic_99%",
+                            "seasalt1_30%", "seasalt1_35%", "seasalt1_40%", "seasalt1_45%",
+                            "seasalt1_50%", "seasalt1_55%", "seasalt1_60%", "seasalt1_65%",
+                            "seasalt1_70%", "seasalt1_75%", "seasalt1_80%", "seasalt1_82%",
+                            "seasalt1_84%", "seasalt1_86%", "seasalt1_88%", "seasalt1_90%",
+                            "seasalt1_91%", "seasalt1_92%", "seasalt1_93%", "seasalt1_94%",
+                            "seasalt1_95%", "seasalt1_96%", "seasalt1_97%", "seasalt1_98%",
+                            "seasalt1_99%",
+                            "seasalt2_30%", "seasalt2_35%", "seasalt2_40%", "seasalt2_45%",
+                            "seasalt2_50%", "seasalt2_55%", "seasalt2_60%", "seasalt2_65%",
+                            "seasalt2_70%", "seasalt2_75%", "seasalt2_80%", "seasalt2_82%",
+                            "seasalt2_84%", "seasalt2_86%", "seasalt2_88%", "seasalt2_90%",
+                            "seasalt2_91%", "seasalt2_92%", "seasalt2_93%", "seasalt2_94%",
+                            "seasalt2_95%", "seasalt2_96%", "seasalt2_97%", "seasalt2_98%",
+                            "seasalt2_99%",
+                            "seasalt3_30%", "seasalt3_35%", "seasalt3_40%", "seasalt3_45%",
+                            "seasalt3_50%", "seasalt3_55%", "seasalt3_60%", "seasalt3_65%",
+                            "seasalt3_70%", "seasalt3_75%", "seasalt3_80%", "seasalt3_82%",
+                            "seasalt3_84%", "seasalt3_86%", "seasalt3_88%", "seasalt3_90%",
+                            "seasalt3_91%", "seasalt3_92%", "seasalt3_93%", "seasalt3_94%",
+                            "seasalt3_95%", "seasalt3_96%", "seasalt3_97%", "seasalt3_98%",
+                            "seasalt3_99%",
+                            "seasalt4_30%", "seasalt4_35%", "seasalt4_40%", "seasalt4_45%",
+                            "seasalt4_50%", "seasalt4_55%", "seasalt4_60%", "seasalt4_65%",
+                            "seasalt4_70%", "seasalt4_75%", "seasalt4_80%", "seasalt4_82%",
+                            "seasalt4_84%", "seasalt4_86%", "seasalt4_88%", "seasalt4_90%",
+                            "seasalt4_91%", "seasalt4_92%", "seasalt4_93%", "seasalt4_94%",
+                            "seasalt4_95%", "seasalt4_96%", "seasalt4_97%", "seasalt4_98%",
+                            "seasalt4_99%",
+                            "seasalt5_30%", "seasalt5_35%", "seasalt5_40%", "seasalt5_45%",
+                            "seasalt5_50%", "seasalt5_55%", "seasalt5_60%", "seasalt5_65%",
+                            "seasalt5_70%", "seasalt5_75%", "seasalt5_80%", "seasalt5_82%",
+                            "seasalt5_84%", "seasalt5_86%", "seasalt5_88%", "seasalt5_90%",
+                            "seasalt5_91%", "seasalt5_92%", "seasalt5_93%", "seasalt5_94%",
+                            "seasalt5_95%", "seasalt5_96%", "seasalt5_97%", "seasalt5_98%",
+                            "seasalt5_99%",
+                            "dust_mode1_of_1","dust_mode1_of_2","dust_mode2_of_2","dust_mode1_of_3","dust_mode2_of_3","dust_mode3_of_3",
+   "seasalt_aitken_30%", "seasalt_aitken_35%", "seasalt_aitken_40%", "seasalt_aitken_45%",
+   "seasalt_aitken_50%", "seasalt_aitken_55%", "seasalt_aitken_60%", "seasalt_aitken_65%",
+   "seasalt_aitken_70%", "seasalt_aitken_75%", "seasalt_aitken_80%", "seasalt_aitken_82%",
+   "seasalt_aitken_84%", "seasalt_aitken_86%", "seasalt_aitken_88%", "seasalt_aitken_90%",
+   "seasalt_aitken_91%", "seasalt_aitken_92%", "seasalt_aitken_93%", "seasalt_aitken_94%",
+   "seasalt_aitken_95%", "seasalt_aitken_96%", "seasalt_aitken_97%", "seasalt_aitken_98%",
+   "seasalt_aitken_99%",
+   "seasalt_fine_30%", "seasalt_fine_35%", "seasalt_fine_40%", "seasalt_fine_45%",
+   "seasalt_fine_50%", "seasalt_fine_55%", "seasalt_fine_60%", "seasalt_fine_65%",
+   "seasalt_fine_70%", "seasalt_fine_75%", "seasalt_fine_80%", "seasalt_fine_82%",
+   "seasalt_fine_84%", "seasalt_fine_86%", "seasalt_fine_88%", "seasalt_fine_90%",
+   "seasalt_fine_91%", "seasalt_fine_92%", "seasalt_fine_93%", "seasalt_fine_94%",
+   "seasalt_fine_95%", "seasalt_fine_96%", "seasalt_fine_97%", "seasalt_fine_98%",
+   "seasalt_fine_99%",
+   "seasalt_coarse_30%", "seasalt_coarse_35%", "seasalt_coarse_40%", "seasalt_coarse_45%",
+   "seasalt_coarse_50%", "seasalt_coarse_55%", "seasalt_coarse_60%", "seasalt_coarse_65%",
+   "seasalt_coarse_70%", "seasalt_coarse_75%", "seasalt_coarse_80%", "seasalt_coarse_82%",
+   "seasalt_coarse_84%", "seasalt_coarse_86%", "seasalt_coarse_88%", "seasalt_coarse_90%",
+   "seasalt_coarse_91%", "seasalt_coarse_92%", "seasalt_coarse_93%", "seasalt_coarse_94%",
+   "seasalt_coarse_95%", "seasalt_coarse_96%", "seasalt_coarse_97%", "seasalt_coarse_98%",
+   "seasalt_coarse_99%"
+   "nitrate_30%", "nitrate_35%", "nitrate_40%", "nitrate_45%",
+   "nitrate_50%", "nitrate_55%", "nitrate_60%", "nitrate_65%",
+   "nitrate_70%", "nitrate_75%", "nitrate_80%", "nitrate_82%",
+   "nitrate_84%", "nitrate_86%", "nitrate_88%", "nitrate_90%",
+   "nitrate_91%", "nitrate_92%", "nitrate_93%", "nitrate_94%",
+   "nitrate_95%", "nitrate_96%", "nitrate_97%", "nitrate_98%",
+   "nitrate_99%"
+/
+
+ &atmos_model_nml
+        nxblocks = 1
+        nyblocks = $atm_threads
+/
+
+ &atmos_tracer_driver_nml
+      step_update_tracer = .true.
+/
+
+ &atmosphere_nml
+
+/
+
+ &cana_nml
+       turbulence_to_use = "lm3v"
+       init_co2 = 286.0e-6
+       canopy_air_mass_for_tracers = 10.0
+       allow_small_z0 = .true.
+       sai_turb = .true.
+/
+
+ &carbon_aerosol_nml
+      bcff_source = 'gocart_2007',
+        bcff_input_name(1)='anthro',
+        bcff_filename='emissions.bc.0.5x0.5.1979-2101.nc',
+        bcff_time_dependency_type='time_varying',bcff_dataset_entry=$baseDate
+      omff_source = 'gocart_2007',
+        omff_input_name(1)='anthro',
+        omff_filename='emissions.om.0.5x0.5.1979-2101.nc',
+        omff_time_dependency_type='time_varying',omff_dataset_entry=$baseDate
+      omsh_source = 'gocart_2007',
+        omsh_input_name(1)='ship',
+        omsh_filename='emissions.om.0.5x0.5.1979-2101.nc',
+        omsh_time_dependency_type='time_varying',omsh_dataset_entry=$baseDate
+      bcsh_source = 'gocart_2007',
+        bcsh_input_name(1)='ship',
+        bcsh_filename='emissions.bc.0.5x0.5.1979-2101.nc',
+        bcsh_time_dependency_type='time_varying',bcsh_dataset_entry=$baseDate
+      bcav_source = 'do_aircraft'
+        bcav_input_name(1)='fuel',
+        bcav_filename='emissions.aircraft.aero.0.5x0.5.1979-2101.nc',
+        bcav_time_dependency_type='time_varying',bcav_dataset_entry=$baseDate
+      bcbb_source = 'AEROCOM',
+        bcbb_filename='emissions.bc.0.5x0.5.1979-2101.nc',
+        bcbb_input_name(1)='bb_l1'
+        bcbb_input_name(2)='bb_l2'
+        bcbb_input_name(3)='bb_l3'
+        bcbb_input_name(4)='bb_l4'
+        bcbb_input_name(5)='bb_l5'
+        bcbb_input_name(6)='bb_l6'
+        bcbb_time_dependency_type='time_varying',bcbb_dataset_entry=$baseDate
+      ombb_source = 'AEROCOM',
+        ombb_filename='emissions.om.0.5x0.5.1979-2101.nc',
+        ombb_input_name(1)='bb_l1'
+        ombb_input_name(2)='bb_l2'
+        ombb_input_name(3)='bb_l3'
+        ombb_input_name(4)='bb_l4'
+        ombb_input_name(5)='bb_l5'
+        ombb_input_name(6)='bb_l6'
+        ombb_time_dependency_type='time_varying',ombb_dataset_entry=$baseDate
+      omna_source = '',
+      omss_source = 'ODowd'
+        omss_coef = 0.05
+      no_biobur_if_no_pbl = .false.
+      do_biobur_pbl_bug = .false.
+/
+
+ &cg_drag_nml
+        cg_drag_freq = 1800,
+        cg_drag_offset = 0,
+        Bt_0 =  0.005,
+        Bt_aug= 0.000,
+        Bt_nh=  0.002,
+        Bt_sh= -0.00025,
+        Bt_eq=  0.000,
+        Bt_eq_width= 4.0,
+        phi0n =  30.,
+        phi0s = -30.,
+        dphin =  5.0,
+        dphis = -5.0,
+        dump_flux= .true.
+        dc= 2.4,
+        cmax= 99.6
+        do_conserve_energy = .true.,
+/
+
+ &cloud_generator_nml
+      do_inhomogeneous_clouds = .true.
+      defaultOverlap = 4
+      overlapLengthScale = 2.0
+/
+
+ &cloud_rad_nml
+      do_brenguier = .false.,
+      scale_factor = 1.00
+/
+
+ &cloud_spec_nml
+        cloud_type_form = 'stratuw'
+	do_stochastic_clouds = .true.
+	use_cloud_tracers_in_radiation = .false. !from radiation in common.nml
+/
+
+ &cloudrad_diagnostics_nml
+      do_isccp = .true.
+      isccp_scale_factor = 1.00
+      water_ice_ratio = 10.
+/
+
+ &cloudrad_package_nml
+      microphys_form = 'predicted'
+/
+
+ &clouds_nml
+      do_zonal_clouds = .false.,
+      do_obs_clouds  = .false.
+/
+
+ &convection_driver_nml
+        cmt_mass_flux_source='uw',
+        do_cmt=.true., 
+        do_donner_before_uw = .false.,
+        do_donner_conservation_checks = .false.,
+        do_gust_cv = .false.,
+        do_gust_cv_new = .false.,
+        do_limit_donner = .false.,
+        do_limit_uw = .false.,
+        force_donner_moist_conserv = .false.,
+/
+
+ &coupler_nml
+        do_chksum = .false.
+        months = $months,
+        days   = $days,
+        current_date = 2018,1,1,0,0,0,
+        calendar = 'julian',
+        dt_cpld = 1800,
+        dt_atmos = 1800,
+        do_atmos = .true.,
+        do_land = .true.,
+        do_ice = .true.,
+        do_ocean = .true.,
+        atmos_npes = $atm_ranks
+        atmos_nthreads = $atm_threads
+        do_concurrent_radiation=.false.
+        radiation_nthreads = 1
+        ocean_npes = $ocn_ranks,
+        concurrent = .true.
+        use_lag_fluxes=.true.
+        check_stocks=0
+/
+
+ &cu_mo_trans_nml
+      transport_scheme='diffusive'
+      diff_norm = 2.5
+/
+
+ &damping_driver_nml
+        trayfric = 0.,
+        nlev_rayfric = 1,
+        do_mg_drag = .false.
+        do_cg_drag = .true.
+        do_topo_drag = .true.,
+        do_conserve_energy = .true.,
+        kstart= 0
+/
+
+ &deep_conv_nml
+        crh_th_ocean = 0.4
+        crh_th_land  = 0.4
+        auto_th0_d = 0.2e-3
+        tcrit_d    = -25.15,
+        peff_l_d   = 6.0e-5
+        peff_i_d   = 11.e-5
+        rkm_dp1 = 0.9
+        rkm_dp2 = 0.1
+        crh_max = 1.0
+        cwfn_th = 10.
+        tau_dp = 28800.
+        mixing_assumption_d = 6
+        do_ppen_d  = .true.
+        rpen_d     = 4.0
+        do_pevap_d = .true.
+        cfrac_d    = 0.15
+        hcevap_d   = 0.85
+        hcevappbl_d = 0.95
+        pblfac_d   = 1.0
+        frac_limit_d = 0.25
+        dcwfndm_th = 100
+        lofactor_d = 1.0
+        do_cgust_dp  = .true.
+        cgust_choice = 1
+        include_emf_d = .false.
+/
+
+ &diag_cloud_nml
+      linvers = .false., lcnvcld = .false.,
+      l_theqv = .true., lomega = .true.,
+      low_lev_cloud_index = 16, nofog = .false.
+/
+
+ &diag_cloud_rad_nml
+      l_har_anvil   = .true.,
+      l_har_coldcld = .true.,
+      l_anom_abs_v  = .true.
+/
+
+ &diag_integral_nml
+      file_name  = 'diag_integral.out',
+      time_units = 'days',
+      output_interval = 1.0
+      fields_per_print_line = 6
+/
+
+ &diag_manager_nml
+        mix_snapshot_average_fields = .false.,
+        max_input_fields = 800,
+        max_output_fields = 1500
+        max_axes = 100
+        max_num_axis_sets = 50
+        max_files = 40
+        issue_oor_warnings = .false.
+        max_axis_attributes=4
+/
+
+ &donner_deep_clouds_W_nml
+      using_dge_sw = .true.,
+      using_dge_lw = .true.
+/
+
+ &donner_deep_nml
+      parcel_launch_level = 2
+      model_levels_in_sfcbl = 0
+      donner_deep_freq = 1200
+      write_reduced_restart_file = .true.
+      allow_mesoscale_circulation = .true.
+      do_donner_cape    = .false.
+      do_donner_plume   = .false.
+      do_donner_closure = .false.
+      do_donner_lscloud = .true.
+      do_dcape          = .false.
+      do_lands          = .false.
+      do_freezing_for_cape = .true.
+      do_freezing_for_closure = .true.
+      gama              = 0.0
+      tau               = 28800.
+      tke0              = 0.5
+      cape0             = 1000.
+      lochoice          = 10
+      do_capetau_land   = .false.
+      use_llift_criteria= .false.
+      do_ice            = .true.
+      atopevap  = 0.1
+      auto_rate = 1.e-3
+      auto_th   = 0.5e-3
+      frac      = 1.65
+      ttend_max = 0.005
+      EVAP_IN_DOWNDRAFTS  = 0.00
+      EVAP_IN_ENVIRON     = 0.00
+      ENTRAINED_INTO_MESO = 1.00
+      ANVIL_PRECIP_EFFICIENCY = 0.55
+      MESO_DOWN_EVAP_FRACTION = 0.4
+      MESO_UP_EVAP_FRACTION   = 0.05
+      wmin_ratio      = 0.05,
+      arat =  1.0, 0.26, 0.35, 0.32, 0.3, 0.54, 0.66
+      erat =  1.0, 1.30, 1.80, 2.50, 3.3, 4.50, 10.0
+      frc_internal_enthalpy_conserv = .true.
+      limit_pztm_to_tropo = .true.
+/
+
+ &dust_nml
+      dust_source_name = 'source',
+      dust_source_filename = 'dust_source_Iceland_1x1.nc'
+      uthresh = 3.5
+      coef_emis = 2.0e-10
+      use_sj_sedimentation_solver=.true.
+/
+
+ &edt_nml
+      n_print_levels = 14,
+      use_qcmin = .true.,
+      num_pts_ij = 0,
+      min_adj_time = 1.0,
+      do_gaussian_cloud = .false.,
+      use_extrapolated_ql = .false.
+/
+
+ &ensemble_nml
+        ensemble_size=15
+/
+
+ &entrain_nml
+        convect_shutoff = .true.,
+        apply_entrain = .true.,
+        parcel_buoy   = 0.25,
+        parcel_option = 2,
+        beta_rad      = 0.23,
+        Ashear        = 25.0, 
+        beta_surf     = 0.23,
+        radperturb    = 0.10, 
+        critjump      = 0.10,
+/
+
+ &esfsw_driver_nml
+     do_four_stream = .false.
+     reproduce_ulm   = .false.
+     do_ch4_sw_effects = .true.
+     do_n2o_sw_effects = .true.
+     do_sw_continuum   = .true.
+     do_quench = .true.
+     remain_rayleigh_bug   = .false.
+/
+
+ &esfsw_parameters_nml
+      sw_code_version = 'esf2015' ! replaces deprecated sw_resolution = 'med'
+      sw_int_points = 66
+      sw_diff_streams = 1
+      sw_NIRVISgas_bands = 11 ! ulm's default value =9, ulm_patch=11
+/
+
+ &fms_io_nml
+        threading_read  = 'multi',
+        max_files_r = 100,
+        max_files_w = 100,
+        checksum_required =.false.
+/
+
+ &fms_nml
+        domains_stack_size = $domains_stack_size
+        print_memory_usage = .false.
+        clock_grain = 'MODULE'
+/
+
+ &fv_core_nml
+        layout   = $atm_layout
+        io_layout = $atm_io_layout
+        npx      = 97,
+        npy      = 97,
+        ntiles   = 6,
+        npz      = 33,
+        k_split  = 1,
+        n_split  = 14,
+        a2b_ord  = 4,
+        adjust_dry_mass = $adjust_dry_mass,
+        adj_mass_vmr    = .true.,
+        print_freq = 0,
+        grid_type = 0,
+        tau = 0.
+        do_uni_zfull = .true.
+        n_sponge = 0
+        d2_bg_k1 = 0.16
+        d2_bg_k2 = 0.02
+        kord_tm = -10
+        kord_mt =  10
+        kord_tr =  10
+        hydrostatic = .T.
+        d_ext = 0.
+        d2_bg = 0.
+        nord =  2
+        dddmp = 0.
+        d4_bg = 0.15
+        vtdm4 = 0.0
+        do_vort_damp = .F.
+        d_con = 0.
+        hord_mt = 10
+        hord_vt = 10
+        hord_tm = 10
+        hord_dp = 10
+        hord_tr = 8
+        consv_te = 0.7
+        consv_am = .T.
+        fill = .T.
+        z_tracer = .T.
+/
+
+ &fv_mapz_nml
+        vert_profile_reconstruct_top  =.true.,
+        vert_profile_reconstruct_bot = .true.
+/
+
+ &gas_tf_nml
+      interp_form = 'log' ,
+      do_calcstdco2tfs = .true.,
+      do_writestdco2tfs= .false.,
+      do_readstdco2tfs = .false.,
+      do_calcstdch4tfs = .true.,
+      do_writestdch4tfs= .false.,
+      do_readstdch4tfs = .false.,
+      do_calcstdn2otfs = .true.,
+      do_writestdn2otfs= .false.,
+      do_readstdn2otfs = .false.
+/
+
+ &generic_tracer_nml
+      do_generic_tracer=.false.
+      do_generic_CFC=.false.
+      do_generic_TOPAZ=.false.
+/
+
+ &glac_data_nml
+       use_lm2_awc = .true.,
+       rsa_exp_global = 10.,
+       f_iso_cold = 0.92, 0.73
+       f_vol_cold = 0.06, 0.08
+       f_geo_cold = 0.00, 0.00
+       f_iso_warm = 0.92, 0.73
+       f_vol_warm = 0.06, 0.08
+       f_geo_warm = 0.00, 0.00
+       dat_emis_dry = 1.,
+       dat_emis_sat = 1.,
+       geothermal_heat_flux_constant = 0.065
+/
+
+ &glac_nml
+      conserve_glacier_mass = .true.
+      lm2 = .true.
+      albedo_to_use = 'brdf-params'
+/
+
+ &harvesting_nml
+        do_harvesting          =.true.
+        grazing_intensity      = 18.25 ! roughly 5% of biomass per day
+        grazing_residue        = 0.1
+        grazing_frequency      = 'daily'
+        min_lai_for_grazing    = 1.0
+        frac_wood_wasted_harv  = 0.25
+        frac_wood_wasted_clear = 0.25
+        !frac_wood_fast         = ONETHIRD
+        !frac_wood_med          = ONETHIRD
+        !frac_wood_slow         = ONETHIRD
+        crop_seed_density      = 0.1
+        waste_below_ground_wood = .TRUE.
+/
+
+ &hlsp_nml
+       max_num_topo_hlsps = 1
+       num_vertclusters = 10
+       use_geohydrodata = .true.
+       strm_depth_penetration = 1.5
+       use_hlsp_aspect_in_gwflow = .true.
+       diagnostics_by_cluster = .true.
+       init_wt_strmelev = .false.
+       dammed_strm_bc = .true.
+       limit_intertile_flow = .true. !.false.
+       flow_ratio_limit = 0.25
+/
+
+ &ice_model_nml
+        spec_ice = .true.,
+        alb_sno = 0.80
+        max_ice_alb = 0.90
+        min_ice_alb = 0.60
+        t_range_melt = 10.0
+        layout = $ice_layout
+        io_layout = $ice_io_layout
+/
+
+ &ice_spec_nml
+      mcm_ice = .false.
+      do_leads = .false.
+      minimum_ice_concentration = 0.5
+      minimum_ice_thickness = 0.1
+      sst_degk = .true.
+/
+
+ &icebergs_nml
+        make_calving_reproduce=.TRUE.
+        really_debug=.FALSE.
+        debug=.FALSE.
+        verbose=.FALSE.
+        verbose_hrs=7200
+        use_operator_splitting=.TRUE.
+        bergy_bit_erosion_fraction=0.0
+        sicn_shift=0.1
+        parallel_reprod=.TRUE.
+        traj_sample_hrs=0
+        add_weight_to_ocean=.false.
+        tidal_drift = 0.005
+        coastal_drift = 0.001
+/
+
+ &interpolator_nml
+      retain_cm3_bug = .false.
+/
+
+ &lake_data_nml
+       lake_to_use = 'from-rivers'
+       lake_specific_width = .false.
+       large_lake_sill_width = 800.
+       num_l = 20,
+       dat_emis_dry = 1.,
+       dat_emis_sat = 1.,
+       dat_heat_capacity_ref = 0.,
+       f_iso_liq = 0.025, 0.01
+       f_iso_ice = 0.025, 0.01
+       f_vol_liq = 0., 0.
+       f_vol_ice = 0., 0.
+       f_geo_liq = 0., 0.
+       f_geo_ice = 0., 0.
+       dry_lake_depth_frac = 0.5
+       dat_z0_momentum(1)     = 1.4e-4
+       dat_z0_momentum_ice(1) = 1.4e-4
+       k_over_B_ice           = 0.25
+       geothermal_heat_flux_constant = 0.065
+/
+
+ &lake_nml
+       albedo_to_use = 'brdf-params'
+       float_ice_to_top = .true.
+       lake_depth_max = 1.e10
+       max_plain_slope = 16.e-5
+       K_z_background  = 15.e-5
+/
+
+ &land_conservation_nml
+        do_check_conservation = .FALSE.
+/
+
+ &land_debug_nml
+      watch_point = 0, 0, 0, 1
+/
+
+ &land_model_nml
+        layout   = $lnd_layout
+        io_layout = $lnd_io_layout
+        tau_snow_T_adj = 604800.
+        prohibit_negative_canopy_water=.false.
+        min_frac = 1e-8
+        npes_io_group = 8
+/
+
+ &landuse_nml
+       do_landuse_change = .TRUE.
+       data_type   = 'luh2'
+       distribute_transitions = 'min-n-tiles'
+       input_file  = 'INPUT/transitions.Hist_SSP585_1940_2040.nc'
+       state_file  = 'INPUT/states.Hist_SSP585_1940_2040.nc'
+       static_file = 'INPUT/landfrac.nc'
+/
+
+ &lscale_cond_nml
+      do_evap = .true.
+/
+
+ &lscloud_driver_nml
+        aerosol_activation_scheme = "total"
+        cfact = 1.0
+        Dmin = 1.0e-07,
+/
+
+ &lw_gases_stdtf_nml
+      NSTDCO2LVLS=496
+      do_co2_bug = .false.
+/
+
+ &mg_drag_nml
+        gmax  = 1.0,
+        acoef = 1.,
+        do_conserve_energy = .true.,
+        source_of_sgsmtn = 'input/computed'
+/
+
+ &microphys_rad_nml
+      do_orig_donner_stoch = .false.,
+      lwem_form = 'fuliou'
+/
+
+ &moist_conv_nml
+      beta = 0.0
+/
+
+ &moist_processes_nml
+        do_uw_conv = .true.
+        do_height_adjust = .true.
+/
+
+ &monin_obukhov_nml
+      stable_option =  2,
+      rich_crit = 1.0,
+      zeta_trans =  0.5
+/
+
+ &my25_turb_nml
+      do_thv_stab = .true.,
+      TKEmin = 1.e-8,
+      AKmin_land = 5.,
+      AKmin_sea  = 0.
+/
+
+ &ocean_albedo_nml
+      ocean_albedo_option = 5
+/
+
+ &ocean_model_nml
+        dt_ocean =1800,
+        time_tendency='twolevel'
+        vertical_coordinate='zstar'
+        baroclinic_split = 1
+        surface_height_split = 1
+        barotropic_split = 80
+        use_blobs=.false.
+        debug=.false.
+        layout = $ocn_layout
+        io_layout = $ocn_io_layout
+/
+
+ &ocean_obs_nml
+	temp_obs = .false.
+	salt_obs = .false.
+/
+
+ &ocean_rough_nml
+        rough_scheme = 'coare3.5'
+/
+
+ &oda_init_nml
+	write_obs = .false.
+	do_bias_correction = .true.
+	bias_correction_file = 'inc.nc'
+/
+
+ &ozone_nml
+      basic_ozone_type = 'time_varying' ,
+      ozone_dataset_entry = $baseDate
+      data_name = "ozone",
+      filename = "o3.climatology.nc"
+      do_coupled_stratozone=.false.
+/
+
+ &photosynthesis_nml
+        photosynthesis_to_use = 'leuning'
+        co2_to_use_for_photosynthesis ='interactive'
+       co2_for_photosynthesis = 387.5e-6
+       respiration_to_use = 'LM3'
+       Kok_effect = .False.
+       lai_eps=1.e-5
+/
+
+ &physics_driver_nml
+        n_land = 300.e6,
+        n_ocean = 100.e6,
+/
+
+ &rad_output_file_nml
+      write_data_file=.true.
+/
+
+ &radiation_diag_nml
+      iradprt_gl = 20, 6,
+      jradprt_gl = 12, 20,
+      num_pts_ij = 0
+/
+
+ &radiation_driver_diag_nml
+      all_step_diagnostics = .true.,
+/
+
+ &radiation_driver_nml
+      rad_time_step= 10800,
+      rad_package = 'sea_esf',
+      do_clear_sky_pass=.true.,
+      !calc_hemi_integrals = .false.,
+      renormalize_sw_fluxes=.true.,
+      zenith_spec = 'diurnally_varying',
+      using_restart_file = .false.
+      do_conserve_energy = .true.
+      sw_rad_time_step = 3600,
+      use_single_lw_sw_ts = .false.,
+/
+
+ &radiative_gases_nml
+      use_co2_10um = .true.
+
+      verbose = 3
+      gas_printout_freq = 240
+
+      time_varying_co2 = .true.,
+      co2_variation_type = 'linear',
+      co2_dataset_entry = $baseDate
+      co2_specification_type = 'time_series',
+      co2_floor = 100.0E-06,
+      co2_ceiling = 1600.0E-06,
+      co2_data_source = 'input'
+
+      time_varying_ch4 = .true.,
+      ch4_variation_type = 'linear'
+      ch4_dataset_entry = $baseDate
+      ch4_specification_type = 'time_series'
+      ch4_data_source = 'input'
+
+      time_varying_n2o = .true.,
+      n2o_variation_type = 'linear'
+      n2o_dataset_entry = $baseDate
+      n2o_specification_type = 'time_series'
+      n2o_data_source = 'input'
+
+      time_varying_f11 = .true.,
+      f11_variation_type = 'linear'
+      f11_dataset_entry = $baseDate
+      f11_specification_type = 'time_series'
+      f11_data_source = 'input'
+
+      time_varying_f12 = .true.,
+      f12_variation_type = 'linear'
+      f12_dataset_entry = $baseDate
+      f12_specification_type = 'time_series'
+      f12_data_source = 'input'
+
+      time_varying_f113 = .true.,
+      f113_variation_type = 'linear'
+      f113_dataset_entry = $baseDate
+      f113_specification_type = 'time_series'
+      f113_data_source = 'input'
+
+      time_varying_f22 = .true.,
+      f22_variation_type = 'linear'
+      f22_dataset_entry = $baseDate
+      f22_specification_type = 'time_series'
+      f22_data_source = 'input'
+
+      !from _common.nml &sealw00_nml
+      calc_co2_tfs_on_first_step = .false.,
+      calc_co2_tfs_monthly = .true.,
+      co2_tf_time_displacement = 360.0,
+
+      calc_ch4_tfs_on_first_step = .false.,
+      calc_ch4_tfs_monthly = .true.,
+      ch4_tf_time_displacement = 360.0,
+
+      calc_n2o_tfs_on_first_step = .false.,
+      calc_n2o_tfs_monthly = .true.,
+      n2o_tf_time_displacement = 360.0,
+/
+
+ &random_number_streams_nml
+        force_use_of_temp_for_seed = .true.
+/
+
+ &ras_nml
+      aratio = 0.9,
+      modify_pbl=.true.
+      rn_frac_bot = 0.5,
+      rn_pbot = 800.0e2,
+      puplim =  500.0e02,
+      rn_ptop = 500.0e2,
+      rn_frac_top = 0.975,
+      Tokioka_on = .true.,
+      Tokioka_con = 0.025,
+      Tokioka_plim = 500.0e2,
+      cufric =.false.
+      do_rasdeep = .false.
+      do_fixed_pres_deep = .true.
+      prevent_unreasonable =.true.
+      a = 1.6851, 1.1686, 0.7663, 0.5255, 0.4100, 0.3677,
+          0.3151, 0.2216, 0.1521, 0.0750, 0.0000, 0.0000,
+          0.0000, 0.0000, 0.0000
+/
+
+ &rh_based_clouds_nml
+      cirrus_cld_prop_form = 'part', 
+      cldht_type_form = '93'
+/
+
+ &river_nml
+       dt_slow     = 86400.
+       land_area_called_cellarea = .true.
+       all_big_outlet_ctn0 = .true.
+       ave_DHG_exp = 0.55, 0.45, 0.0
+       ave_DHG_coef = 7.5, 0.3, 0.444444444
+       ave_AAS_exp = 0.26, 0.40, 0.34
+/
+
+ &river_physics_nml
+       lake_sfc_w_min = 10.
+       prohibit_cold_ice_outflow = .FALSE.
+/
+
+ &rotstayn_klein_mp_nml
+        rk_act_only_if_ql_gt_qmin = .true.
+        include_homogeneous_for_wetdep = .false.
+        include_adjustment_for_wetdep = .true.
+        num_mass_ratio1 = 1.0
+        num_mass_ratio2 = 0.
+        rthresh = 8.5,
+        U_evap_snow = 1.0
+        vfact = 0.9
+/
+
+ &sat_vapor_pres_nml
+      construct_table_wrt_liq = .true.,
+      construct_table_wrt_liq_and_ice = .true.,
+      use_exact_qs = .true.
+/
+
+ &sealw99_nml
+      do_thick = .false.,
+      do_nlte = .false.,
+      do_lwcldemiss = .true.,
+      continuum_form = 'mt_ckd2.5',
+      linecatalog_form = 'hitran_2012',
+      verbose = 5
+/
+
+ &secondary_organics_nml
+        gas_conc_filename ='gas_conc_3D_am3p9.nc'
+	isoprene_source = 'guenther'
+	isoprene_filename = 'emissions.isoprene.1x1.2000.nc'
+	isoprene_input_name(1) = 'biogenic'
+	isoprene_SOA_yield = 0.10
+	terpene_source = 'guenther'
+	terpene_filename  = 'emissions.terpenes.1x1.2000.nc'
+	terpene_input_name(1) = 'biogenic'
+	terpene_SOA_yield = 0.10
+/
+
+ &shortwave_driver_nml
+      do_cmip_diagnostics = .true.,
+      swform = 'esfsw99'
+      solar_dataset_entry = $baseDate
+      time_varying_solar_constant = .true.,
+/
+
+ &simple_sulfate_nml
+        gas_conc_filename='gas_conc_3D_am3p9.nc'
+        gas_conc_time_dependency_type='constant'
+        cont_volc_source='do_cont_volc'
+        expl_volc_source='do_expl_volc'
+          aerocom_emission_filename='so2_0.25_volcanoes.nc'
+        aircraft_source='do_aircraft',
+          aircraft_filename='emissions.aircraft.aero.0.5x0.5.1979-2101.nc',
+          aircraft_emission_name(1)='fuel'
+          so2_aircraft_EI=0.001
+          aircraft_time_dependency_type='time_varying',aircraft_dataset_entry=$baseDate
+        anthro_source='do_anthro',
+          anthro_emission_name(1)='so2ff',
+          anthro_emission_name(2)='so4ff',
+          anthro_filename='anthro_so2.1979_2101.nc',
+          anthro_time_dependency_type='time_varying',anthro_dataset_entry=$baseDate
+        biobur_source='do_biobur',
+          biobur_emission_name(1)='so2bb',
+          biobur_emission_name(2)='so4bb',
+          biobur_filename='anthro_so2.1979_2101.nc',
+          biobur_time_dependency_type='time_varying',biobur_dataset_entry=$baseDate
+        cloud_chem_solver="f1p"
+        pH_cloud=4.5
+        no_biobur_if_no_pbl = .false.
+/
+
+ &snow_data_nml
+       emis_snow_max = 1.
+       emis_snow_min = 1.
+       z0_momentum = 0.01
+       num_l = 5
+       dz = 0.05, 0.2, 0.5, 0.2, 0.05, 0.0, 0.0, 0.0, 0.0, 0.0
+       f_iso_cold = 0.92, 0.58
+       f_vol_cold = 0.06, 0.08
+       f_geo_cold = 0.00, 0.00
+       f_iso_warm = 0.77, 0.43
+       f_vol_warm = 0.06, 0.08
+       f_geo_warm = 0.00, 0.00
+       depth_crit = 0.0125
+       thermal_cond_ref = 0.09
+       distinct_snow_on_glacier = .TRUE.
+       f_iso_cold_on_glacier = 0.92, 0.68
+       f_vol_cold_on_glacier = 0.06, 0.08
+       f_geo_cold_on_glacier = 0.00, 0.00
+       f_iso_warm_on_glacier = 0.77, 0.43
+       f_vol_warm_on_glacier = 0.06, 0.08
+       f_geo_warm_on_glacier = 0.00, 0.00
+/
+
+ &snow_nml
+       min_snow_mass = 1.e-7
+       albedo_to_use = 'brdf-params'
+       snow_density = 250.
+       prevent_tiny_snow = .true.
+/
+
+ &soil_data_nml
+       geohydrology_to_use    = 'hill'
+       use_comp_for_ic        = .true.
+       use_comp_for_push      = .true.
+       use_tau_fix            = .false.
+       use_sat_fix            = .true.
+       use_alt3_soil_hydraulics = .true.
+       gw_scale_soil_depth  = 0.1666667
+       gw_scale_perm        = 1.0
+       gw_scale_relief      = 0.5
+       aspect           = 0.01
+       k0_macro_z       = 0.0
+       k0_macro_x       = 1.0
+       freeze_factor    = 1.5
+       comp             = 1e-4
+       num_l            = 20
+       dz = 0.020, 0.040, 0.040, 0.050, 0.05, 0.100, 0.10, 0.200, 0.200, 0.2,
+            0.40,  0.40,  0.40,  0.4,   0.4,   1.0,   1.0,  1.0,  1.5,   2.5
+       soil_type_file          = "INPUT/soil_type.nc"
+       input_cover_types       =  1,       2,       3,       4,       5,       6,       7,       8,       9,       10,      11,      12,      13,       14
+       tile_names              =  'hec',   'sic',   'lic',   'sicl',  'cl',    'si',    'sil',   'sac',   'l',     'sacl',  'sal',  'ls',     's',     'u'
+       dat_w_sat               =  0.468,   0.468,   0.468,   0.464,   0.465,   0.476,   0.476,   0.406,   0.439,   0.404,   0.434,   0.421,   0.339,   0.439
+       dat_k_sat_ref           =  0.00097, 0.0013,  0.00097, 0.002,   0.0024,  0.0028,  0.0028,  0.0072,  0.0033,  0.0045,  0.0052,  0.014,   0.047,   0.0033
+       dat_psi_sat_ref         = -0.47,   -0.32,   -0.47,   -0.62,   -0.26,   -0.76,   -0.76,   -0.098,  -0.35,   -0.13,   -0.14,   -0.036   -0.069,  -0.35
+       dat_chb                 =  12.0,    10.0,    12.0,    8.7,     8.2,     5.3,     5.3,     11.0,    5.2,     6.8,     4.7,     4.3,     2.8,     5.2
+       dat_heat_capacity_dry   =  1.1e6,   1.1e6,   1.1e6,   1.1e6,   1.1e6,   1.1e6,   1.1e6,   1.1e6,   1.1e6,   1.1e6,   1.1e6,   1.1e6,   1.1e6,   1.1e6
+       dat_thermal_cond_dry    =  0.21,    0.21,    0.21,    0.21,    0.21,    0.21,    0.21,    0.21,    0.21,    0.21,    0.21,    0.21,    0.14,    0.21
+       dat_thermal_cond_sat    =  1.5,     1.5,     1.5,     1.5,     1.5,     1.5,     1.5,     1.5,     1.5,     1.5,     1.5,     1.5,     2.3,     1.5
+       dat_thermal_cond_exp    =  6,       6,       6,       5,       5,       5,       5,       6,       5,       5,       5,       5,       3,       5
+       dat_thermal_cond_scale  =  10,      10,      10,      0.5,     0.5,     0.5,     0.5,     10,      0.5,     0.5,     0.5,     0.5,     15,      0.5
+       dat_thermal_cond_weight =  0.7,     0.7,     0.7,     0.7,     0.7,     0.7,     0.7,     0.7,     0.7,     0.7,     0.7,     0.7,     0.2,     0.7
+       dat_emis_dry            =  1.0,     1.0,     1.0,     1.0,     1.0,     1.0,     1.0,     1.0,     1.0,     1.0,     1.0,     1.0,     1.0,     1.0
+       dat_emis_sat            =  1.0,     1.0,     1.0,     1.0,     1.0,     1.0,     1.0,     1.0,     1.0,     1.0,     1.0,     1.0,     1.0,     1.0
+       dat_tf_depr             =  2.0,     2.0,     2.0,     2.0,     2.0,     2.0,     2.0,     2.0,     2.0,     2.0,     2.0,     2.0,     2.0,     2.0
+       dat_z0_momentum         =  0.01,    0.01,    0.01,    0.01,    0.01,    0.01,    0.01,    0.01,    0.01,    0.01,    0.01,    0.01,    0.01,    0.01
+       Dpsi_min_const      = -1.e12
+       K_min               = 1.e-12
+       geothermal_heat_flux_constant = 0.065
+       retro_a0N1 = .true.
+/
+
+ &soil_nml
+       init_wtdep    = 10.
+       albedo_to_use = 'brdf-maps'
+       uptake_to_use = 'darcy2d-linearized'
+       uptake_oneway = .true.
+       active_layer_drainage_acceleration = 1.
+       gw_flux_max   = 0.001
+       lrunf_from_div = .false.
+       cold_infilt   = .false.
+       use_depth_to_wt_4 = .true.
+       layer_for_gw_switch = 16
+       bottom_up_cold_infilt = .true.
+       cold_depth = 3.0
+       bwood_macinf = 1.
+       allow_neg_wl = .true.
+       prohibit_negative_water_div = .true.
+       fix_neg_subsurface_wl = .TRUE.
+/
+
+ &ssalt_nml
+     coef_emis_fine=1.33, coef_emis_coarse=1.33,
+     use_sj_sedimentation_solver=.true.
+/
+
+ &stable_bl_turb_nml
+      alsm = 500.0,
+      alsh = 500.0
+/
+
+ &static_veg_nml
+       use_static_veg = .false.
+       write_static_veg = .false.
+       timeline   = 'loop'
+       start_loop = 1981, 1, 1, 0, 0, 0
+       end_loop   = 1982, 1, 1, 0, 0, 0
+       fill_land_mask = .TRUE.
+       input_file = 'INPUT/19810101.static_veg_out.nc'
+/
+
+ &strat_clouds_W_nml
+
+/
+
+ &surface_flux_nml
+        gust_min = 1.e-10
+        raoult_sat_vap = .true.
+/
+
+ &tiedtke_macro_nml
+        diff_thresh = 0.1,
+        eros_scale = 1.e-6,
+        eros_choice = .true.,
+        eros_scale_c = 4.e-5,
+        eros_scale_t = 5.e-5,
+        U00 = 0.80,
+        mc_thresh = 0.001,
+        U00_profile = .true.,
+/
+
+ &topo_drag_nml
+        frcrit  = 0.7
+        alin    = 0.9
+        anonlin = 3.0
+        use_mg_scaling = .true.
+        do_pbl_average = .false.
+        use_mask_for_pbl = .false.
+        beta = 0.5
+        gamma = 0.4
+        epsi = 0.0
+        h_frac = 0.1
+        zref_fac = 1.0
+        no_drag_frac = 0.1
+        tboost = 1.5
+        pcut = 0.
+        samp = 2.
+        do_conserve_energy = .true.
+        use_pbl_from_lock = .true.
+        use_uref_4stable = .true.
+/
+
+ &topo_rough_nml
+      use_topo_rough    = .true.
+      max_topo_rough    = 100.0 
+      topo_rough_factor = 0.01
+      topo_rough_source = 'input',
+      topo_rough_file = 'INPUT/topo_rough_land.nc',
+/
+
+ &tropchem_driver_nml
+        do_tropchem = .false.
+/
+
+ &uw_closure_nml
+        do_old_cbmfmax = .true.,
+        rkfre    = 0.1
+        wcrit_min= 0.2
+/
+
+ &uw_conv_nml
+        rkm_sh1         = 7.0,
+        rkm_sh          = 3.0,
+        do_deep         = .true.,
+        idpchoice       = 2
+        do_rescale      = .true.
+        do_rescale_t    = .true.
+        use_new_let     = .true.
+        do_new_subflx   = .true.
+        do_new_pevap    = .false.
+        plev_cin        = 60000.
+        plev_for        = 60000.
+        src_choice      = 1
+        wrel_min        = 1.
+        do_new_qnact    = .true.
+        do_prog_gust    = .true.
+        cgust0          = 2.
+        cgust_max       = 4.
+        tracer_check_type = 2
+        stop_at_let     = .true.
+        lofactor0       = 0.5
+        do_umf_pbl      = .true.
+        do_new_convcld  = .true.
+        do_minmse       = .true.
+        reproduce_old_version = .false.
+        do_conv_micro_N = .false.
+        N0 = 100.e6
+        do_eis_limit = .true.
+        eis_max = 8.
+/
+
+ &uw_plume_nml
+        r_thresh = 10.
+        auto_th0 = 0.2e-3,
+        tcrit    = -25.15,
+        peff_l   = 6.0e-5
+        peff_i   = 11.e-5
+        frac_drs = 0.5
+        rpen     = 4.0
+        wmin     = 0.5
+        deltaqc0 = 0.5e-3 
+        do_pdfpcp= .false.
+        do_pmadjt= .true.
+        do_emmax = .true.
+        do_pnqv  = .true.
+        mixing_assumption = 6
+	scaleh0  = 1000.
+        beta = 0.0
+        rkm_max = 15
+        mp_choice = 3
+        do_pevap = .true.
+        do_new_pblfac = .true.
+        include_emf_s = .false.
+        cfrac    = 0.15
+        hcevap   = 0.85
+        hcevappbl = 0.95
+        pblfac   = 1.0
+        emfrac_max = 0.25
+        rmaxfrac = 0.1
+        do_limit_wmax = .true.
+        do_limit_fdr  = .true.
+        wmax = 20.
+        do_tten_max = .false.
+        tten_max = 1000
+        bigc = 0.0
+        nom_ratio = 0.7
+/
+
+ &vegn_data_nml
+       vegn_to_use = 'uniform'
+       K1=10,
+       K2=0.1,
+       fsc_liv=0.9,
+       fsc_wood=0.45,
+       c1(4) = 0.3
+       c2(4) = 0.3
+       Vmax = 2.0E-5, 2.0E-5, 2.0E-5, 2.0E-5, 1.50E-5,
+       m_cond = 4., 9., 9., 7., 7.,
+       alpha_phot = 0.05, 0.06, 0.06, 0.06, 0.06,
+       gamma_resp = 0.03, 0.02, 0.02, 0.02, 0.02,
+       tc_crit(0:2) = 3*273.16
+       fact_crit_phen(0:4) = 0., 0., 0., 0., 0.
+       fact_crit_fire(0:4) = 0., 0., 0., 0., 0.
+       cnst_crit_phen(0:4) = 0.30, 0.15, 0.15, 0.30, 0.30
+       cnst_crit_fire(0:4) = 0.15,  0.40, 0.15, 0.15, 0.15
+       wet_leaf_dreg(0:4)  = .3, .3, .3, .3, .3
+       ksi =  0, 0, 0, 0, 0,
+       leaf_refl(0:4,1) = 0.11, 0.11, 0.10, 0.10, 0.10
+       leaf_refl(0:4,2) = 0.58, 0.58, 0.45, 0.45, 0.39,
+       dat_root_zeta(0:4) =   0.35212, 0.17039, 0.28909, 0.25813, 0.17039
+       critical_root_density = 0.0,
+       tau_drip_s     = 259200.0
+       cmc_lai(0:4) = 0.02, 0.02, 0.02, 0.02, 0.02
+       csc_lai(0:4) = 0.30, 0.30, 0.30, 0.30, 0.2
+       dat_snow_crit = 2*1.e7, .1, 1.e7, .1
+       t_transp_min = 268.
+       srl(0:1) = 112.0e3, 150.0e3
+       root_perm = 14*5e-7
+       alpha(1,3) = 4
+       leaf_age_tau(2) = 150
+       smoke_fraction = 0.9, 0.9, 0.6, 0.6, 0.6
+       tg_c3_thresh = 1
+       phen_ev1 = 0.2
+       phen_ev2 = 0.7
+       cmc_eps = 0.01
+       alpha(0:4,6) = 0.0, 0.0, 0.012, 0.012, 0.012
+       treefall_disturbance_rate = 0.175, 0.185, 0.025, 0.0275, 0.027
+       use_light_saber = .true.
+       sai_cover = .true.
+       sai_rad = .true.
+       min_lai = 1.e-5   ! h1g, prevent numerical instability, 2017-08-24
+/
+
+ &vegn_nml
+        init_Tv = 288.0
+        rad_to_use = 'two-stream'
+        snow_rad_to_use = 'paint-leaves'
+        do_cohort_dynamics   = .TRUE.,
+        do_patch_disturbance = .TRUE.,
+        do_phenology         = .TRUE.,
+        do_biogeography      = .TRUE.,
+        do_seed_transport    = .TRUE.,
+        tau_smooth_ncm = 22.0
+        rav_lit_bwood = 300.
+/
+
+ &vert_diff_driver_nml
+      do_conserve_energy = .true.
+/
+
+ &vert_turb_driver_nml
+      gust_scheme      = 'beljaars',
+      do_mellor_yamada = .false.,
+      do_entrain       = .true.,
+      do_edt           = .false.,
+      do_diffusivity   = .false.,
+      do_stable_bl     = .true.,
+      do_shallow_conv  = .false.
+/
+
+ &wetdep_nml
+        scale_aerosol_wetdep = 1.
+        drydep_exp = .true.
+/
+
+ &xgrid_nml
+        make_exchange_reproduce = .true.
+        interp_method = 'second_order'
+/
+
+\EOF
+
+
+set months = $monthslist[1]
+set days = $dayslist[1]
+set hours = $hourslist[1]
+set adjust_dry_mass = `adjust_dry_mass_tool`
+
+set | sort > $envFile
+sleep $envFileDelay
+set -r | sort >> $envFile
+sleep $envFileDelay
+env --unset=TERMCAP | grep -e '^[a-zA-Z0-9_]*=' | sort >> $envFile
+
+expandVariables $envFile < input.nml.unexpanded > input.nml || exit 1
+
+rm -f $envFile
+
+if ( $?FRE_STAGE ) then
+   if ( $FRE_STAGE == 'CHAIN' ) then
+      if ( -f $scriptName ) then
+         if ( -r $scriptName ) then
+            set result = `submit $scriptName`
+            if ( $status == 0 ) then
+               if ( $echoOn ) unset echo
+               echo "<NOTE> : The job '$result' to run the '$scriptName' has been submitted successfully"
+               if ( $echoOn ) set echo
+               workDirCleaner $workDir
+               if ( $echoOn ) unset echo
+               echo "<NOTE> : Natural end-of-input-chaining for '$scriptName'"
+               if ( $echoOn ) set echo
+               exit 0
+            else
+               workDirCleaner $workDir
+               if ( $echoOn ) unset echo
+               echo "*ERROR*: Can't submit the '$scriptName'"
+               if ( $echoOn ) set echo
+               exit 1
+            endif
+            unset result
+         else
+            workDirCleaner $workDir
+            if ( $echoOn ) unset echo
+            echo "*ERROR*: The script '$scriptName' exists, but is not readable - it can't be submitted"
+            if ( $echoOn ) set echo
+            exit 1
+         endif
+      else
+         workDirCleaner $workDir
+         if ( $echoOn ) unset echo
+         echo "*ERROR*: The script '$scriptName' does not exist - it can't be submitted"
+         if ( $echoOn ) set echo
+         exit 1
+      endif
+   else if ( $FRE_STAGE == 'DEBUG' ) then
+      if ( $echoOn ) unset echo
+      echo "<NOTE> : The working directory '$workDir' is ready for debugging"
+      echo "<NOTE> : Natural end-of-debug-staging for '$scriptName'"
+      if ( $echoOn ) set echo
+      exit 0
+   else
+      workDirCleaner $workDir
+      if ( $echoOn ) unset echo
+      echo "<NOTE> : Natural end-of-input-staging for '$scriptName'"
+      if ( $echoOn ) set echo
+      exit 0
+   endif
+endif
+
+################################################################################
+#------------------------------- the main loop ---------------------------------
+################################################################################
+
+while ( $irun <= $segmentsPerJob && $currentSeg <= $segmentsPerSimulation )
+   if ( $echoOn ) unset echo
+   echo "################################################################################"
+   echo "# $currentSeg/$segmentsPerSimulation"
+   echo "################################################################################"
+   if ( $echoOn ) set echo
+
+   # ---------------- reload the queue file and exit if it has been requested
+
+   if ( $?flagRunTypeProduction ) then
+      if ( -f $queue_file ) then
+         if ( -r $queue_file ) then
+            source $queue_file
+         else
+            if ( $echoOn ) unset echo
+            echo "*ERROR*: The queue file '$queue_file' is not readable"
+            if ( $echoOn ) set echo
+            exit 1
+         endif
+      endif
+
+      if ( ! $continueFlag ) then
+         if ( $echoOn ) unset echo
+         echo "<NOTE> : Stopping execution"
+         if ( $echoOn ) set echo
+         exit 0
+      endif
+   endif
+
+   # ---------------- commands
+
+
+cd INPUT
+
+# adjustment of dry mass first time only
+set adjust_dry_mass = `/scratch/cimes/wg4031/fre_scripts/adjust_dry_mass.csh`
+
+# create dummy MOM6 parameter file
+touch MOM_input
+cd ..
+
+
+      
+
+cat > ocean_obs_table <<EOF
+EOF
+
+######BEGIN MOM6 and SIS2 layout setup################
+##THIS HAS TO BE PART OF csh type=always###
+
+cat > $workDir/INPUT/MOM_override_00 << EOF
+#override COORD_DEF = "FILE:vgrid_oda.nc,dz"
+#override COORD_FILE = "coord_oda.nc"
+#override REGRIDDING_COORDINATE_MODE = "Z*"
+#override ALE_COORDINATE_CONFIG = "FILE:vgrid_oda.nc,dz"
+#override NK = 75
+#override MAXIMUM_INT_DEPTH_CONFIG = "NONE"
+#override MAX_LAYER_THICKNESS_CONFIG = "NONE"
+NJHALO_ODA = 12
+NIHALO_ODA = 8
+#override REMAPPING_SCHEME = "PPM_H4"
+
+! === module ODA ===
+ASSIM_METHOD = 'NONE'
+ASSIM_FREQUENCY = 24
+BASIN_FILE = "basin.nc"         ! default = "basin.nc"
+
+#override TOPO_EDITS_FILE = "topo_edits_011818.nc"
+#override CHANNEL_LIST_FILE = MOM_channels_SPEAR
+RESTART_CONTROL = 2
+NUM_DIAG_COORDS = 2             ! default = 1
+                                ! The number of diagnostic vertical coordinates to use.
+                                ! For each coordinate, an entry in DIAG_COORDS must be provided.
+DIAG_COORDS = "z Z ZSTAR", "rho2 RHO2 RHO" !
+
+DIAG_COORD_DEF_RHO2 = "RFNC1:35,999.5,1028,1028.5,8.,1038.,0.0078125" ! default = "WOA09"
+                                ! Determines how to specify the coordinate
+                                ! resolution. Valid options are:
+                                !  PARAM       - use the vector-parameter DIAG_COORD_RES_RHO2
+                                !  UNIFORM[:N] - uniformly distributed
+                                !  FILE:string - read from a file. The string specifies
+                                !                the filename and variable name, separated
+                                !                by a comma or space, e.g. FILE:lev.nc,dz
+                                !                or FILE:lev.nc,interfaces=zw
+                                !  WOA09[:N]   - the WOA09 vertical grid (approximately)
+                                !  FNC1:string - FNC1:dz_min,H_total,power,precision
+                                !  HYBRID:string - read from a file. The string specifies
+                                !                the filename and two variable names, separated
+                                !                by a comma or space, for sigma-2 and dz. e.g.
+                                !                HYBRID:vgrid.nc,sigma2,dz
+
+EOF
+
+cat > $workDir/INPUT/MOM_override_01 << EOF
+#override TOPO_EDITS_FILE = "topo_edits_011818.nc"
+#override CHANNEL_LIST_FILE = MOM_channels_SPEAR
+#override MIXEDLAYER_RESTRAT = False
+ENSEMBLE_OCEAN = True
+RESTART_CONTROL = 2
+NUM_DIAG_COORDS = 3             ! default = 1
+                                ! The number of diagnostic vertical coordinates to use.
+                                ! For each coordinate, an entry in DIAG_COORDS must be provided.
+DIAG_COORDS = "z Z ZSTAR, rho2 RHO2 RHO, ztop ZTOP300 ZSTAR"
+
+DIAG_COORD_DEF_RHO2 = "RFNC1:35,999.5,1028,1028.5,8.,1038.,0.0078125" ! default = "WOA09"
+DIAG_COORD_DEF_ZTOP300 =  "UNIFORM:2,600."
+                                ! Determines how to specify the coordinate
+                                ! resolution. Valid options are:
+                                !  PARAM       - use the vector-parameter DIAG_COORD_RES_RHO2
+                                !  UNIFORM[:N] - uniformly distributed
+                                !  FILE:string - read from a file. The string specifies
+                                !                the filename and variable name, separated
+                                !                by a comma or space, e.g. FILE:lev.nc,dz
+                                !                or FILE:lev.nc,interfaces=zw
+                                !  WOA09[:N]   - the WOA09 vertical grid (approximately)
+                                !  FNC1:string - FNC1:dz_min,H_total,power,precision
+                                !  HYBRID:string - read from a file. The string specifies
+                                !                the filename and two variable names, separated
+                                !                by a comma or space, for sigma-2 and dz. e.g.
+                                !                HYBRID:vgrid.nc,sigma2,dz
+
+EOF
+
+set ENS_I = 2
+while ( $ENS_I <= 9 )
+	cp $workDir/INPUT/MOM_override_01 $workDir/INPUT/MOM_override_0$ENS_I
+	@ ENS_I++
+end
+set ENS_I = 10
+while ( $ENS_I <= 30 )
+	cp $workDir/INPUT/MOM_override_01 $workDir/INPUT/MOM_override_$ENS_I
+	@ ENS_I++
+end
+
+touch $workDir/INPUT/SIS_override
+
+cat > $workDir/INPUT/SIS_override << EOF
+#override CP_SEAWATER = 3992.
+#override CP_BRINE = 3992.
+#override ICE_BULK_SALINITY = 0.0
+#override ICE_RELATIVE_SALINITY = 0.17
+#override SIS2_FILLING_FRAZIL = T
+#override SIS_THICKNESS_ADVECTION_SCHEME = "PCM"
+#override SIS_CONTINUITY_SCHEME = "PCM"
+#override SIS_TRACER_ADVECTION_SCHEME = "PPM:H3"
+EOF
+
+#scan auxiliary_nml
+#set OCN_MASK_TABLE =
+#set OCN_MASK_TABLE = `awk '/ocean_mask_table/ {gsub(/=/," ");gsub(/,/," ");print $2}' $workDir/input.nml`
+#set OCN_LAYOUT     = `awk '/ocean_layout/     {gsub(/=/," ");           print $2,$3}' $workDir/input.nml`
+#set OCN_IO_LAYOUT  = `awk '/ocean_io_layout/  {gsub(/=/," ");           print $2,$3}' $workDir/input.nml`
+
+cat > $workDir/INPUT/MOM_layout << MOM_LAYOUT_EOF
+#override IO_LAYOUT = $ocn_io_layout
+#override LAYOUT    = $ocn_layout
+#override MASKTABLE = $ocn_mask_table
+MOM_LAYOUT_EOF
+
+#scan auxiliary_nml
+#set ICE_MASK_TABLE = `awk '/ice_mask_table/ {gsub(/=/," ");gsub(/,/," ");print $2}' $workDir/input.nml`
+#set ICE_LAYOUT     = `awk '/ice_layout/     {gsub(/=/," ");           print $2,$3}' $workDir/input.nml`
+#set ICE_IO_LAYOUT  = `awk '/ice_io_layout/  {gsub(/=/," ");           print $2,$3}' $workDir/input.nml`
+
+cat > $workDir/INPUT/SIS_layout << SIS_LAYOUT_EOF
+#override IO_LAYOUT = $ice_io_layout
+#override LAYOUT    = $ice_layout
+#override MASKTABLE = $ocn_mask_table
+SIS_LAYOUT_EOF
+
+######END MOM6 and SIS2 layout setup################
+
+cd $workDir/INPUT
+
+if ( $currentSeg == 1 ) then
+     rm -f coupler.res
+endif
+cd $workDir
+
+#------------------------------------------
+## Find out whether to restart.
+# MOM6 restart switch
+if ( $currentSeg == 1 ) then
+   set restart_flag = 'n'
+else
+   set restart_flag = 'r'
+endif
+   set sis_restart_flag = 'r'
+
+cd $workDir
+
+## Run the model
+#------------------------------------------
+###The following vars are set for the timing database ingestion tool only and are not necessary for a successful run
+set OCN_MASK_TABLE  =  $ocn_mask_table
+set OCN_LAYOUT    = $ocn_layout
+set OCN_IO_LAYOUT = $ocn_io_layout
+set ICE_LAYOUT    = $ice_layout
+set ICE_IO_LAYOUT = $ice_io_layout
+set atmos_npes = $atm_ranks
+set ocean_npes = $ocn_ranks
+set fv_layout = $atm_layout
+set fv_io_layout  = $atm_io_layout
+set land_layout   = $lnd_layout
+set land_io_layout = $lnd_io_layout
+set dummy  = `awk '/nxblocks/ {gsub(/=/," ");gsub(/,/," ");print $2}' $workDir/input.nml`
+set nxblocks = $dummy
+set dummy  = `awk '/nyblocks/ {gsub(/=/," ");gsub(/,/," ");print $2}' $workDir/input.nml`
+set nyblocks = $dummy
+
+   cd $workDir
+
+   # ---------------- expand namelists
+    
+   set months = $monthslist[$irun]
+   set days = $dayslist[$irun]
+   set hours = $hourslist[$irun]
+   set adjust_dry_mass = `adjust_dry_mass_tool`
+
+   set | sort > $envFile
+   sleep $envFileDelay
+   set -r | sort >> $envFile
+   sleep $envFileDelay
+   env --unset=TERMCAP | grep -e '^[a-zA-Z0-9_]*=' | sort >> $envFile
+
+   expandVariables $envFile < input.nml.unexpanded > input.nml || exit 1
+
+   rm -f $envFile
+
+   # ---------------- prepare MPI call, execute it, analyze results
+
+   unsetenv OMP_NUM_THREADS
+
+   echo "Time before runCommand"
+   date
+
+   runCommand |& tee fms.out
+
+   if ( $status == 0 ) then
+      if ( $echoOn ) unset echo
+      echo "<NOTE> : The MPI launcher (srun) exited normally"
+      if ( $echoOn ) set echo
+   else if ( $status == 1 ) then
+      set msg =       "*ERROR*: Automatic message from the job '$FRE_JOBID'\n"
+      set msg = "${msg}*ERROR*: -----------------------------------------------------------------------\n"
+      set msg = "${msg}*ERROR*: The MPI launcher (srun) exited with error status\n"
+      set msg = "${msg}*ERROR*: \n"
+      set msg = "${msg}*ERROR*: Possible Reasons: incorrect srun options (for example more cores specified\n"
+      set msg = "${msg}*ERROR*: than available), node failure or untrapped srun error.\n"
+      set msg = "${msg}*ERROR*: \n"
+      set msg = "${msg}*ERROR*: Please see the job stdout, located at:\n"
+      set msg = "${msg}*ERROR*: \n"
+      set msg = "${msg}*ERROR*: \t$stdoutDir/$FRE_JOBID\n"
+      set msg = "${msg}*ERROR*: \n"
+
+      set MPI_FAIL
+   else
+      set msg =       "*ERROR*: Automatic message from the job '$FRE_JOBID'\n"
+      set msg = "${msg}*ERROR*: -----------------------------------------------------------------------\n"
+      set msg = "${msg}*ERROR*: The MPI launcher (srun) exited abnormally\n"
+      set msg = "${msg}*ERROR*: \n"
+      set msg = "${msg}*ERROR*: Possible Reasons: job cancelled or job ended through MPI_Abort or segfault.\n"
+      set msg = "${msg}*ERROR*: \n"
+      set msg = "${msg}*ERROR*: Please see the job stdout, located at:\n"
+      set msg = "${msg}*ERROR*: \n"
+      set msg = "${msg}*ERROR*: \t$stdoutDir/$FRE_JOBID\n"
+      set msg = "${msg}*ERROR*: \n"
+
+      set MPI_FAIL
+   endif
+
+   if ( $?MPI_FAIL ) then
+      set coreFiles = ( `ls core*` )
+
+      if ( $#coreFiles > 0 ) then
+         if ( ! $?MPI_COREDUMP_DEBUGGER ) setenv MPI_COREDUMP_DEBUGGER 'gdb -batch'
+         echo 'where' > .gdbinit
+
+         set coreFileFirst = $coreFiles[1]
+         echo "Dump of the core file '$coreFileFirst'" > $coreFileFirst.out
+         $MPI_COREDUMP_DEBUGGER $executable:t $coreFileFirst >> $coreFileFirst.out
+         cat $coreFileFirst.out >> fms.out
+         cat $coreFileFirst.out
+         unset coreFileFirst
+
+         set msg = "${msg}*ERROR*: Your job has produced $#coreFiles core files (segment $currentSeg)\n"
+         set msg = "${msg}*ERROR*: Please go to the working directory '$workDir' and issue the following command for each core file there:\n"
+         set msg = "${msg}*ERROR*: \n"
+
+         @ count = 0
+         @ countMax = 20
+
+         foreach coreFile ( $coreFiles )
+            set msg = "${msg}*ERROR*: \t$MPI_COREDUMP_DEBUGGER $executable:t $coreFile >> $coreFile.out\n"
+            if ( $count < $countMax ) then
+               @ count++
+            else
+               break
+            endif
+         end
+
+         set msg = "${msg}*ERROR*: \n"
+         set msg = "${msg}*ERROR*: FRE has executed the command above for one core file and echoed the result to the job stdout.\n"
+
+         if ( $count == $countMax ) then
+            set msg = "${msg}*ERROR*: In order to save space only the first $countMax core files are presented in this list.\n"
+            set msg = "${msg}*ERROR*: \n"
+         endif
+
+         unset countMax
+         unset count
+      else
+         set cdsize = `limit coredumpsize`
+         set msg = "${msg}*ERROR*: No core files produced (segment $currentSeg)\n"
+         set msg = "${msg}*ERROR*: You are using the $cdsize\n"
+         set msg = "${msg}*ERROR*: \n"
+         unset cdsize
+      endif
+
+      set msg = "${msg}*ERROR*: -----------------------------------------------------------------------\n"
+      set msg = "${msg}*ERROR*: This message has been generated by FRE\n"
+      set msg = "${msg}*ERROR*: `date`"
+
+      if ( $?batch ) then
+         if ( $echoOn ) unset echo
+         printf "$msg" | mailx -s "The MPI launcher has failed" $mailList
+         printf "$msg"
+         if ( $echoOn ) set echo
+      endif
+
+      unset coreFiles
+      unset msg
+
+      set outputDir = ${outputDir}_crash
+   endif
+
+   echo "Time after runCommand"
+   date
+
+   # ---------------- generate date for file names
+
+   set begindate = `timeStamp -b`
+   if ( $begindate == 'no_time_stamp' ) set begindate = tmp`date '+%j%H%M%S'`
+   set enddate = `timeStamp -e`
+   if ( $enddate == 'no_time_stamp' ) set enddate = tmp`date '+%j%H%M%S'`
+   set fyear = `echo $enddate | timeStamp -y`
+
+   # ---------------- commands, copied from XML (experiment/postProcess/csh)
+
+         cd $workDir/RESTART
+         ncrcat icebergs.res.nc.* icebergs.res.nc
+         if(-e icebergs.res.nc) rm -f icebergs.res.nc.*
+         cd $workDir
+         ncrcat iceberg_trajectories.nc.* iceberg_trajectories.nc
+         rm -f iceberg_trajectories.nc.*
+         #Save the last line of timestats without the first (step number) column as a signature of MOM6 answers
+         tail -1 timestats | cut -c8- > RESTART/$enddate.timestats.res
+         #Save the whole timestats under ascii/
+         mv timestats $enddate.timestats
+         mv timestats.nc $enddate.timestats.nc
+
+         #Make a directory to trick FRE to pick up and archive in ascii
+         mkdir -p extra.results
+
+         mv *velocity_truncations CPU_stats SIS_parameter_doc* MOM_parameter_doc* extra.results/         
+
+   cd $workDir
+
+   # ---------------- remove time_stamp.out file
+
+   if ( -f time_stamp.out ) rm -f time_stamp.out
+
+   # ---------------- save ascii files
+
+   set asciiFiles = ( `ls -1 | egrep "$patternGrepAscii"` )
+
+   if ( $#asciiFiles > 0 ) then
+      set asciiSuffix = ascii/$begindate.ascii_out
+      set asciiBackup = $begindate.ascii_out.tar
+      set asciiArchDir = $outputDir/$asciiSuffix
+      set asciiWorkDir = $tmpOutputDir$asciiArchDir
+
+      mkdir -p $asciiWorkDir 'clean' || exit 1
+
+      # include batch job stdout in ascii tarfile
+      cp $stdoutDir/$FRE_JOBID $asciiWorkDir
+
+      if ( ! $?MPI_FAIL ) then
+         ls -1 | egrep "$patternGrepAscii" | xargs -I'{}' mv --force '{}' $asciiWorkDir/$begindate.'{}'
+
+	 set asciiOutputDirRemote = ""
+         set actionSaveOn         = 1
+         set actionXferOn         = 0
+         set paramArchiveOn       = 1
+         set paramPtmpOn          = 0
+         set paramCheckSumOn      = 0
+         set paramCompressOn      = 0
+      else
+         ls -1 | egrep "$patternGrepAscii" | xargs -I'{}' ln --force '{}' $asciiWorkDir/$begindate.'{}'
+
+         set asciiOutputDirRemote = ""
+         set actionSaveOn         = 1
+         set actionXferOn         = 0
+         set paramArchiveOn       = 1
+         set paramPtmpOn          = 0
+         set paramCheckSumOn      = 0
+         set paramCompressOn      = 0
+      endif
+
+      set asciiJobName = $FRE_JOBID.output.stager.$begindate.A
+      set asciiArgFile = $stateDir/$asciiJobName.args
+
+      echo "set expName                   =   $name"                       > $asciiArgFile
+      echo "set type                      =   ascii"                      >> $asciiArgFile
+      echo "set stagingType               =   $outputStagingType"         >> $asciiArgFile
+      echo "set actionCombineOn           =   0"                          >> $asciiArgFile
+      echo "set actionCheckOn             =   0"                          >> $asciiArgFile
+      echo "set actionSaveOn              =   $actionSaveOn"              >> $asciiArgFile
+      echo "set actionXferOn              =   $actionXferOn"              >> $asciiArgFile
+      echo "set actionPPStartOn           =   0"                          >> $asciiArgFile
+      echo "set paramArchiveOn            =   $paramArchiveOn"            >> $asciiArgFile
+      echo "set paramPtmpOn               =   $paramPtmpOn"               >> $asciiArgFile
+      echo "set paramCheckSumOn           =   $paramCheckSumOn"           >> $asciiArgFile
+      echo "set paramCompressOn           =   $paramCompressOn"           >> $asciiArgFile
+      echo "set workDir                   =   $tmpOutputDir"              >> $asciiArgFile
+      echo "set ptmpDir                   =   $ptmpDir"                   >> $asciiArgFile
+      echo "set archDir                   =   $asciiArchDir"              >> $asciiArgFile
+      echo "set outputDirRemote           =   $asciiOutputDirRemote"      >> $asciiArgFile
+      echo "set saveRetry                 =   0"                          >> $asciiArgFile
+      echo "set xferRetry                 =   0"                          >> $asciiArgFile
+
+
+      outputStager $asciiArgFile
+
+      mkdir -p $outputDir/ascii
+      tar -cf $outputDir/ascii/$asciiBackup -C $asciiWorkDir .
+
+      rm $asciiArgFile
+
+      unset asciiResult
+      unset asciiBackup
+	 
+      unset asciiXferOptions
+      unset asciiSaveOptions
+
+      unset asciiArgFile
+      unset asciiJobName
+
+      unset paramCompressOn
+      unset paramCheckSumOn
+      unset paramPtmpOn
+      unset paramArchiveOn
+      unset actionXferOn
+      unset actionSaveOn
+
+      unset asciiOutputDirRemote
+      unset asciiWorkDir
+      unset asciiArchDir
+      unset asciiSuffix
+   endif
+
+   unset asciiFiles
+
+# ---------------- save restart files, namelist, tables etc. and move them from RESTART to INPUT
+
+   pushd $workDir/RESTART
+
+   set restartFiles = ( `ls -1 | egrep "$patternGrepRestart"` )
+
+   if ( $#restartFiles > 0 ) then
+      set restartSuffix = restart/$enddate
+      set restartBackup = $enddate.tar
+      set restartArchDir = $outputDir/$restartSuffix
+      set restartWorkDir = $tmpOutputDir$restartArchDir
+
+      mkdir -p $restartWorkDir 'clean' || exit 1
+
+      ls -1 | egrep "$patternGrepRestart" | xargs ln --force --target-directory=$restartWorkDir
+
+      cp --force --preserve=mode,ownership,timestamps $workDir/input.nml $restartWorkDir
+      cp --force --preserve=mode,ownership,timestamps $workDir/*_table   $restartWorkDir
+      cp --force --preserve=mode,ownership,timestamps $workDir/*_table.yaml $restartWorkDir
+      cp --force --preserve=mode,ownership,timestamps $scriptName        $restartWorkDir
+
+      if ( ! $?MPI_FAIL ) then
+         set restartOutputDirRemote = ""
+
+         if ( $currentSeg < $segmentsPerSimulation && $irun < $segmentsPerJob ) then
+            find $workDir/INPUT   -maxdepth 1 -type f | egrep "$patternGrepRestartNextDrop" | xargs --no-run-if-empty rm --force
+            find $workDir/RESTART -maxdepth 1 -type f | egrep "$patternGrepRestartNextMove" | xargs --no-run-if-empty mv --force --target-directory ../INPUT
+
+            set actionCombineOn = $?flagRunTypeRegression
+            set actionCheckOn   = $?flagOutputCheckOn
+            set actionSaveOn    = 1
+            set actionXferOn    = 0
+            set paramArchiveOn  = $?flagOutputArchiveOn
+            set paramPtmpOn     = 1
+            set paramCheckSumOn = $?flagCheckSumOn
+            set paramCompressOn = $?flagOutputCompressRestartOn
+         else
+            if ( $currentSeg < $segmentsPerSimulation && ( $?flagOutputStagingTypeStaged || $?flagOutputStagingTypeChained ) ) then
+               if ( $status == 0 ) then
+                  if ( $echoOn ) unset echo
+                  echo "<NOTE> : The restart directory '$restartArchDir' has been saved successfully"
+                  if ( $echoOn ) set echo
+               else
+                  if ( $echoOn ) unset echo
+                  set msg =       "*ERROR*: Can't save the restart directory '$restartArchDir'\n"
+                  set msg = "${msg}*ERROR*: restart files have not been saved.  Files will remain in the work directory\n\n"
+                  set msg = "${msg}*ERROR*: $workDir\n\n"
+                  set msg = "${msg}*ERROR*: To continue the model, you will need to recover the restart files manually.\n"
+                  if ( $?batch ) then
+                     printf "$msg" | mailx -s "Can't save the restart directory '$restartArchDir'\n" $mailList
+                  endif
+                  printf "$msg"
+                  set restartSaveFailure = 1
+                  if ( $echoOn ) set echo
+               endif
+            endif
+
+            set actionCombineOn = $?flagRunTypeRegression
+            set actionCheckOn   = $?flagOutputCheckOn
+            set actionSaveOn    = 1
+            set actionXferOn    = $?flagOutputXferOn
+            set paramArchiveOn  = $?flagOutputArchiveOn
+            set paramPtmpOn     = 1
+            set paramCheckSumOn = $?flagCheckSumOn
+            set paramCompressOn = $?flagOutputCompressRestartOn
+         endif
+      else
+         set restartOutputDirRemote = ""
+         set actionCombineOn        = 0
+         set actionCheckOn          = 0
+         set actionSaveOn           = 1
+         set actionXferOn           = 0
+         set paramArchiveOn         = 1
+         set paramPtmpOn            = 0
+         set paramCheckSumOn        = 0
+         set paramCompressOn        = 0
+      endif
+
+      set restartJobName = $FRE_JOBID.output.stager.$enddate.R
+      set restartArgFile = $stateDir/$restartJobName.args
+
+      echo "set expName                   =   $name"                       > $restartArgFile
+      echo "set type                      =   restart"                    >> $restartArgFile
+      echo "set stagingType               =   $outputStagingType"         >> $restartArgFile
+      echo "set actionCombineOn           =   $actionCombineOn"           >> $restartArgFile
+      echo "set actionCheckOn             =   $actionCheckOn"             >> $restartArgFile
+      echo "set actionSaveOn              =   $actionSaveOn"              >> $restartArgFile
+      echo "set actionXferOn              =   $actionXferOn"              >> $restartArgFile
+      echo "set actionPPStartOn           =   0"                          >> $restartArgFile
+      echo "set paramArchiveOn            =   $paramArchiveOn"            >> $restartArgFile
+      echo "set paramPtmpOn               =   $paramPtmpOn"               >> $restartArgFile
+      echo "set paramCheckSumOn           =   $paramCheckSumOn"           >> $restartArgFile
+      echo "set paramCompressOn           =   $paramCompressOn"           >> $restartArgFile
+      echo "set paramVerbosityOn          =   $?flagVerbosityOn"          >> $restartArgFile
+      echo "set workDir                   =   $tmpOutputDir"              >> $restartArgFile
+      echo "set ptmpDir                   =   $ptmpDir"                   >> $restartArgFile
+      echo "set archDir                   =   $restartArchDir"            >> $restartArgFile
+      echo "set outputDirRemote           =   $restartOutputDirRemote"    >> $restartArgFile
+      echo "set saveRetry                 =   0"                          >> $restartArgFile
+      echo "set xferRetry                 =   0"                          >> $restartArgFile
+      echo "set mppnccombineOptString     =  '$mppnccombineOptsRestart'"  >> $restartArgFile
+      echo "set ardiffTmpdir              =   $ardiffTmpdir"              >> $restartArgFile
+
+      if ( $?flagOutputStagingTypeOnline ) then
+         if ( $?MPICH_RANK_REORDER_METHOD ) then
+            set mpiRankReorderMethod = $MPICH_RANK_REORDER_METHOD
+            unsetenv MPICH_RANK_REORDER_METHOD
+         endif
+
+         outputStager $restartArgFile
+
+         if ( $status == 0 ) then
+            if ( $echoOn ) unset echo
+            echo "<NOTE> : The restart directory '$restartArchDir' has been processed successfully"
+            if ( $echoOn ) set echo
+         else
+            @ outputStagerErrors += 1
+            if ( $echoOn ) unset echo
+            set msg =       "*WARNING*: Can't save the restart directory '$restartArchDir'\n"
+            set msg = "${msg}*WARNING*: restart files have not been saved, you may need to transfer them manually.\n\n"
+            set msg = "${msg}*WARNING*: The restart ArgFile has been saved at $restartArgFile.  You may be able\n"
+            set msg = "${msg}*WARNING*: use the following command:\n\n"
+            set msg = "${msg}*WARNING*: $outputStager $restartArgFile\n"
+            if ( $?batch ) then
+               printf "$msg" | mailx -s "Can't save the restart directory '$restartArchDir'\n" $mailList
+            endif
+            printf "$msg"
+            if ( $echoOn ) set echo
+         endif
+
+         if ( $?mpiRankReorderMethod ) then
+            setenv MPICH_RANK_REORDER_METHOD $mpiRankReorderMethod
+            unset $mpiRankReorderMethod
+         endif
+      endif
+	 
+      mkdir -p $outputDir/restart
+      tar -cf $outputDir/restart/$restartBackup -C $restartWorkDir .
+
+      rm $restartArgFile
+   
+      unset restartResult
+      unset restartBackup
+
+      unset restartArgFile
+      unset restartJobName
+
+      unset paramCompressOn
+      unset paramCheckSumOn
+      unset paramPtmpOn
+      unset paramArchiveOn
+      unset actionXferOn
+      unset actionSaveOn
+      unset actionCheckOn
+      unset actionCombineOn
+
+      unset restartOutputDirRemote
+      unset restartWorkDir
+      unset restartSuffix
+   endif
+   popd
+
+   # ---------------- rename region history files
+
+   set regionHistoryFiles = ( `ls -1 | egrep "$patternGrepRegion"` )
+
+   if ( $#regionHistoryFiles > 0 ) then
+      if ( ! $?MPI_FAIL ) then
+         foreach file ( $regionHistoryFiles )
+            mv -f $file `echo $file | sed -r "s/$patternGrepRegion//"`
+         end
+      endif
+   endif
+
+   unset regionHistoryFiles
+
+   # ---------------- combine, save and post-process history files
+
+   set historyFiles = ( `ls -1 | egrep "$patternGrepHistory"` )
+
+   if ( $#historyFiles > 0 ) then
+      if ( $?flagOutputCombineHistoryOn ) then
+         set historySuffix = history/$begindate.nc
+      else
+         set historySuffix = history/$begindate.raw.nc
+      endif
+
+      set historyBackup = $begindate.nc.tar
+      set historyArchDir = $outputDir/$historySuffix
+      set historyWorkDir = $tmpOutputDir$historyArchDir
+
+      mkdir -p $historyWorkDir 'clean' || exit 1
+
+      if ( ! $?MPI_FAIL ) then
+         ls -1 | egrep "^[0-9][0-9][0-9][0-9][0-9][0-9].+$patternGrepHistory" | xargs -I'{}' mv --force '{}' $historyWorkDir/'{}'
+         ls -1 | egrep "$patternGrepHistory" | xargs -I'{}' mv --force '{}' $historyWorkDir/$begindate.'{}'
+
+         set historyOutputDirRemote = ""
+
+         set actionCombineOn = $?flagOutputCombineHistoryOn
+         set actionCheckOn   = $?flagOutputCheckOn
+         set actionSaveOn    = 1
+         set actionXferOn    = $?flagOutputXferOn
+         set actionFillGridOn = $?flagOutputFillGridOn
+
+         set actionPPStartOn = 0
+         set ppStarterOptions = ( )
+
+         set actionRetryOn   =   1
+         set paramArchiveOn  =   $?flagOutputArchiveOn
+         @   paramPtmpOn     = ! $?flagOutputArchiveOn
+         set paramCheckSumOn =   $?flagCheckSumOn
+         set paramCompressOn =   $?flagOutputCompressHistoryOn
+      else
+         ls -1 | egrep "^[0-9][0-9][0-9][0-9][0-9][0-9].+$patternGrepHistory" | xargs -I'{}' mv --force '{}' $historyWorkDir/$begindate.'{}'
+         ls -1 | egrep "$patternGrepHistory" | xargs -I'{}' ln --force '{}' $historyWorkDir/$begindate.'{}'
+
+         set historyOutputDirRemote = ""
+         set actionCombineOn        = 0
+         set actionCheckOn          = 0
+         set actionSaveOn           = 1
+         set actionXferOn           = 0
+         set actionPPStartOn        = 0
+         set actionRetryOn          = 0
+         set ppStarterOptions       = ( )
+         set paramArchiveOn         = 1
+         set paramPtmpOn            = 0
+         set paramCheckSumOn        = 0
+         set paramCompressOn        = 0
+         set actionFillGridOn       = 0
+      endif
+
+      set historyJobName = $FRE_JOBID.output.stager.$begindate.H
+      set historyArgFile = $stateDir/$historyJobName.args
+
+      echo "set expName                   =   $name"                       > $historyArgFile
+      echo "set type                      =   history"                    >> $historyArgFile
+      echo "set stagingType               =   $outputStagingType"         >> $historyArgFile
+      echo "set actionCombineOn           =   $actionCombineOn"           >> $historyArgFile
+      echo "set actionCheckOn             =   $actionCheckOn"             >> $historyArgFile
+      echo "set actionSaveOn              =   $actionSaveOn"              >> $historyArgFile
+      echo "set actionXferOn              =   $actionXferOn"              >> $historyArgFile
+      echo "set actionPPStartOn           =   $actionPPStartOn"           >> $historyArgFile
+      echo "set actionRetryOn             =   $actionRetryOn"             >> $historyArgFile
+      echo "set actionFillGridOn          =   $actionFillGridOn"          >> $historyArgFile
+      echo "set paramArchiveOn            =   $paramArchiveOn"            >> $historyArgFile
+      echo "set paramPtmpOn               =   $paramPtmpOn"               >> $historyArgFile
+      echo "set paramCheckSumOn           =   $paramCheckSumOn"           >> $historyArgFile
+      echo "set paramCompressOn           =   $paramCompressOn"           >> $historyArgFile
+      echo "set paramVerbosityOn          =   $?flagVerbosityOn"          >> $historyArgFile
+      echo "set workDir                   =   $tmpOutputDir"              >> $historyArgFile
+      echo "set ptmpDir                   =   $ptmpDir"                   >> $historyArgFile
+      echo "set archDir                   =   $historyArchDir"            >> $historyArgFile
+      echo "set outputDirRemote           =   $historyOutputDirRemote"    >> $historyArgFile
+      echo "set saveRetry                 =   0"                          >> $historyArgFile
+      echo "set xferRetry                 =   0"                          >> $historyArgFile
+      echo "set includeDir                =   $includeDir"                >> $historyArgFile
+      echo "set mppnccombineOptString     =  '$mppnccombineOptsHistory'"  >> $historyArgFile
+      echo "set gridSpec                  =   $gridSpec"                  >> $historyArgFile
+      echo "set ardiffTmpdir              =   $ardiffTmpdir"              >> $historyArgFile
+
+      if ( $?flagOutputStagingTypeOnline ) then
+         if ( $?MPICH_RANK_REORDER_METHOD ) then
+            set mpiRankReorderMethod = $MPICH_RANK_REORDER_METHOD
+            unsetenv MPICH_RANK_REORDER_METHOD
+         endif
+
+         outputStager $historyArgFile
+
+         if ( $status == 0 ) then
+            if ( $echoOn ) unset echo
+            echo "<NOTE> : The history directory '$historyArchDir' has been processed successfully"
+            if ( $echoOn ) set echo
+         else
+            @ outputStagerErrors += 1
+            if ( $echoOn ) unset echo
+            set msg =       "*WARNING*: Can't process the history directory '$historyArchDir'\n"
+            set msg = "${msg}*WARNING*: history files have not been saved, you may need to transfer them manually.\n\n"
+            set msg = "${msg}*WARNING*: The history ArgFile has been saved at $historyArgFile.  You may be able\n"
+            set msg = "${msg}*WARNING*: use the following command:\n\n"
+            set msg = "${msg}*WARNING*: $outputStager $historyArgFile\n"
+            if ( $?batch ) then
+               printf "$msg" | mailx -s "Can't process the history directory '$historyArchDir'" $mailList
+            endif
+            printf "$msg"
+            if ( $echoOn ) set echo
+         endif
+
+         if ( $?mpiRankReorderMethod ) then
+            setenv MPICH_RANK_REORDER_METHOD $mpiRankReorderMethod
+            unset $mpiRankReorderMethod
+         endif
+      endif
+
+      mkdir -p $outputDir/history
+      tar -cf $outputDir/history/$historyBackup -C $historyWorkDir .
+
+      rm $historyArgFile
+      
+      unset historyResult
+      unset historyXferOptions
+      unset historySaveOptions
+
+      unset historyArgFile
+      unset historyJobName
+
+      unset paramCompressOn
+      unset paramCheckSumOn
+      unset paramPtmpOn
+      unset paramArchiveOn
+      unset ppStarterOptions
+      unset actionPPStartOn
+      unset actionXferOn
+      unset actionSaveOn
+      unset actionCheckOn
+      unset actionCombineOn
+
+      unset historyOutputDirRemote
+      unset historyWorkDir
+      unset historyArchDir
+      unset historySuffix
+   endif
+
+   unset historyFiles
+
+   # ---------------- terminate script if MPI failed
+
+   if ( $?MPI_FAIL ) then
+      if ( $echoOn ) unset echo
+      echo "*ERROR*: The MPI failed (segment $currentSeg)"
+      echo "*ERROR*: Any output that may have been generated is in the '$outputDir'"
+      echo "*ERROR*: The '$workDir' is being kept for possible debugging"
+      if ( $echoOn ) set echo
+
+      exit 1
+   endif
+
+   # ---------------- unset remaining restart variables
+
+   unset restartArchDir
+   unset restartFiles
+
+   # ---------------- increment loop counters
+
+   @ currentSeg++
+   @ irun++
+end
+
+################################################################################
+#--------------------------- after the main loop -------------------------------
+################################################################################
+
+if ( $echoOn ) unset echo
+echo "################################################################################"
+echo "# ending"
+echo "################################################################################"
+if ( $echoOn ) set echo
+
+if ( $?flagRunTypeProduction ) then
+   if ( $currentSeg <= $segmentsPerSimulation ) then
+      if ( -f $queue_file ) then
+         if ( -r $queue_file ) then
+            source $queue_file
+         else
+            if ( $echoOn ) unset echo
+            echo "*ERROR*: The queue file '$queue_file' is not readable"
+            if ( $echoOn ) set echo
+            exit 1
+         endif
+      endif
+
+      if ( ! $continueFlag ) then
+         if ( $echoOn ) unset echo
+         echo "<NOTE> : Stopping execution"
+         if ( $echoOn ) set echo
+         exit 0
+      endif
+
+      if ( -f $scriptName ) then
+         if ( -r $scriptName ) then
+            set nextOptions = ( $submitOptionsProject )
+            set result = `submit -O "$nextOptions" $scriptName`
+            if ( $status == 0 ) then
+               if ( $echoOn ) unset echo
+               echo "<NOTE> : The job '$result' to run the '$scriptName' has been submitted successfully"
+               if ( $echoOn ) set echo
+            else
+               if ( $echoOn ) unset echo
+               echo "*ERROR*: Can't submit the '$scriptName'"
+               if ( $echoOn ) set echo
+               exit 1
+            endif
+            unset result
+            unset nextOptions
+         else
+            if ( $echoOn ) unset echo
+            @ lastSeg = $currentSeg - 1
+            echo "WARNING: The script '$scriptName' exists, but is not readable (run $lastSeg) - it can't be resubmitted"
+            unset lastSeg
+            if ( $echoOn ) set echo
+         endif
+      else
+         if ( $echoOn ) unset echo
+         @ lastSeg = $currentSeg - 1
+         echo "WARNING: The script '$scriptName' does not exist (run $lastSeg) - it can't be resubmitted"
+         unset lastSeg
+         if ( $echoOn ) set echo
+      endif
+   endif
+endif
+
+set -r runtimeEnd = `date "+%s"`
+set -r runtime = `echo "$runtimeEnd - $runtimeBeg" | bc -l`
+
+rm -rf $workDir
+
+if ( $echoOn ) unset echo
+echo "<NOTE> : Finishing on `date`"
+echo "<NOTE> : Runtime = '$runtime' (seconds)"
+echo "<NOTE> : Natural end-of-script for '$scriptName'"
+if ( $echoOn ) set echo
+
+exit 0
