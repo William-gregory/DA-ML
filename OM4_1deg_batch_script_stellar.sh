@@ -530,22 +530,62 @@ endif
 
 unset initCondStatus
 
-set domains_stack_size = "2097152"
-      
-set domains_stack_size = "3097152"
-#set ocn_mask_table = "MOM_mask_table"
+cd $workDir/INPUT
+if ( $currentSeg == 1 ) then
+     rm -f coupler.res
+endif
+cd $workDir
 
-cat > $workDir/INPUT/MOM_layout << LAYOUT_EOF
-#override LAYOUT = $ocn_layout
-#override IO_LAYOUT = $ocn_io_layout
-MASKTABLE = $ocn_mask_table
-LAYOUT_EOF
+cat > $workDir/INPUT/MOM_override << MOM_OVERRIDE_EOF
+#override TOPO_EDITS_FILE = "topo_edits_011818.nc"                                                                                                                                                                    
+#override CHANNEL_LIST_FILE = MOM_channels_SPEAR                                                                                                                                                                      
+#override SALT_RESTORE_FILE = "salt_restore_PHC2.1degOM4.v20180716.nc"                                                                                                                                                
+#override SALT_RESTORE_VARIABLE = "SALT"   ! default = "salt"                                                                                                                                                         
+#override FLUXCONST_TEMP = 4.0                                                                                                                                                                                        
+#override RESTORE_TEMPERATURE = TRUE                                                                                                                                                                                  
+#override SPEAR_ECDA_SST_RESTORE_TFREEZE = TRUE                                                                                                                                                                       
+#override SST_RESTORE_FILE  = "temp_restore.nc"                                                                                                                                                                       
+#override SST_RESTORE_VARIABLE = "temp"                                                                                                                                                                               
+                                                                                                                                                                                                                      
+#override KV_ML_INVZ2 = 1.0E-4                                                                                                                                                                                        
+#override DEFAULT_ANSWER_DATE=20181231                                                                                                                                                                                
+#override INTERNAL_WAVE_SPEED_BETTER_EST = False
 
-cat > $workDir/INPUT/SIS_layout << LAYOUT_EOF
-#override LAYOUT = $ice_layout
-#override IO_LAYOUT = $ice_io_layout
-MASKTABLE = $ocn_mask_table
-LAYOUT_EOF
+#override REMAP_UV_USING_OLD_ALG = True                                                                                                                                                                               
+#override Z_INIT_REMAP_OLD_ALG = True                                                                                                                                                                                 
+#override FIX_USTAR_GUSTLESS_BUG =False                                                                                                                                                                               
+#override GRID_ROTATION_ANGLE_BUGS = True                                                                                                                                                                             
+#override KAPPA_SHEAR_ALL_LAYER_TKE_BUG = True                                                                                                                                                                        
+#override KAPPA_SHEAR_ITER_BUG = True                                                                                                                                                                                 
+#override USE_GM_WORK_BUG = True                                                                                                                                                                                      
+#override USE_MLD_ITERATION = False                                                                                                                                                                                   
+#override USE_TRIPOLAR_GEOLONB_BUG =True                                                                                                                                                                              
+#override GUST_CONST = 0.02                                                                                                                                                                                           
+#override MEKE_ALPHA_EADY = 0.05                                                                                                                                                                                      
+#override MEKE_ALPHA_RHINES = 0.05                                                                                                                                                                                    
+#override MIN_SALINITY = 0.01                                                                                                                                                                                         
+                                                                                                                                                                                                                      
+#override KH_BG_2D_BUG=True                                                                                                                                                                                           
+#override USE_DIABATIC_TIME_BUG=True                                                                                                                                                                                  
+#override USE_INACCURATE_PGF_RHO_ANOM=True                                                                                                                                                                            
+#override NDIFF_USE_UNMASKED_TRANSPORT_BUG=True                                                                                                                                                                       
+#override RESTART_CHECKSUMS_REQUIRED = False                                                                                                                                                                          
+                                                                                                                                                                                                                      
+MOM_OVERRIDE_EOF                                                                                                                                                                                                      
+
+touch $workDir/INPUT/SIS_override
+
+cat > $workDir/INPUT/SIS_override << EOF                                                                                                                                                                                 
+#override CP_SEAWATER = 3992.                                                                                                                                                                                         
+#override CP_BRINE = 3992.                                                                                                                                                                                            
+#override ICE_BULK_SALINITY = 0.0                                                                                                                                                                                     
+#override ICE_RELATIVE_SALINITY = 0.17                                                                                                                                                                                
+#override SIS2_FILLING_FRAZIL = T                                                                                                                                                                                     
+#override SIS_THICKNESS_ADVECTION_SCHEME = "PCM"                                                                                                                                                                      
+#override SIS_CONTINUITY_SCHEME = "PCM"                                                                                                                                                                               
+#override SIS_TRACER_ADVECTION_SCHEME = "PPM:H3"                                                                                                                                                                      
+#override RESTART_CHECKSUMS_REQUIRED = False                                                                                                                                                                          
+EOF
 
 cd $workDir
 
@@ -815,15 +855,15 @@ EOF
 cat > input.nml.unexpanded <<\EOF
  &MOM_input_nml
          output_directory = './',
-         input_filename = "MOM.res.ens_%2E.nc"
+         input_filename = "$restart_flag"
          restart_input_dir = 'INPUT/',
          restart_output_dir = 'RESTART/',
-         parameter_filename = 'INPUT/MOM_input','INPUT/MOM_layout','INPUT/MOM_override'
+         parameter_filename = 'INPUT/MOM_input','INPUT/MOM_layout','INPUT/MOM_override, 'INPUT/MOM_saltrestore'
 /
 
  &SIS_input_nml
          output_directory = './',
-         input_filename = '$sis_restart_flag'
+         input_filename = '$restart_flag'
          restart_input_dir = 'INPUT/',
          restart_output_dir = 'RESTART/',
          parameter_filename = 'INPUT/SIS_input','INPUT/SIS_layout','INPUT/SIS_override'
@@ -1062,18 +1102,18 @@ touch $workDir/INPUT/MOM_layout
 touch $workDir/INPUT/SIS_layout  
 
 # Record the job stdout location for later use timings database                                                                                                                                                  
-cat >> /ncrc/home2/William.Gregory/frejobs_stdout <<EOF_frejobs                                                                                                                                                  
+cat >> /scratch/cimes/wg4031/frejobs_stdout <<EOF_frejobs                                                                                                                                                  
 $stdoutDir/$FRE_JOBID                                                                                                                                                                                            
 EOF_frejobs                                                                                                                                                                                                      
                                                                                                                                                                                                                  
-cat > $work/INPUT/MOM_layout << MOM_LAYOUT_EOF                                                                                                                                                                   
+cat > $workDir/INPUT/MOM_layout << MOM_LAYOUT_EOF                                                                                                                                                                   
 #override IO_LAYOUT = $ocn_io_layout                                                                                                                                                                             
 #override LAYOUT    = $ocn_layout                                                                                                                                                                                
 #override MASKTABLE = $ocn_mask_table                                                                                                                                                                            
 #override OCEAN_OMP_THREADS = $ocn_threads                                                                                                                                                                       
 MOM_LAYOUT_EOF                                                                                                                                                                                                   
                                                                                                                                                                                                                  
-cat > $work/INPUT/SIS_layout << SIS_LAYOUT_EOF                                                                                                                                                                   
+cat > $workDir/INPUT/SIS_layout << SIS_LAYOUT_EOF                                                                                                                                                                   
 #override IO_LAYOUT = $ice_io_layout                                                                                                                                                                             
 #override LAYOUT    = $ice_layout                                                                                                                                                                                
 #override MASKTABLE = $ice_mask_table                                                                                                                                                                            
@@ -1116,187 +1156,6 @@ $fetch_cmd /scratch/cimes/wg4031/JRA/licalvf_input4MIPs_atmosphericState_OMIP_MR
 #                                                                                                                                                                                                                
 $fetch_cmd /scratch/cimes/wg4031/OISST/sst_oidaily_v2p1_icecorr_icec30_tripolar_${forceyr}.nc temp_restore.nc                                                                             
 cd $workDir
-
-
-cd INPUT
-
-# adjustment of dry mass first time only
-set adjust_dry_mass = `/scratch/cimes/wg4031/fre_scripts/adjust_dry_mass.csh`
-
-# create dummy MOM6 parameter file
-touch MOM_input
-cd ..
-
-
-      
-
-cat > ocean_obs_table <<EOF
-EOF
-
-######BEGIN MOM6 and SIS2 layout setup################
-##THIS HAS TO BE PART OF csh type=always###
-
-cat > $workDir/INPUT/MOM_override_00 << EOF
-#override COORD_DEF = "FILE:vgrid_oda.nc,dz"
-#override COORD_FILE = "coord_oda.nc"
-#override REGRIDDING_COORDINATE_MODE = "Z*"
-#override ALE_COORDINATE_CONFIG = "FILE:vgrid_oda.nc,dz"
-#override NK = 75
-#override MAXIMUM_INT_DEPTH_CONFIG = "NONE"
-#override MAX_LAYER_THICKNESS_CONFIG = "NONE"
-NJHALO_ODA = 12
-NIHALO_ODA = 8
-#override REMAPPING_SCHEME = "PPM_H4"
-
-! === module ODA ===
-ASSIM_METHOD = 'NONE'
-ASSIM_FREQUENCY = 24
-BASIN_FILE = "basin.nc"         ! default = "basin.nc"
-
-#override TOPO_EDITS_FILE = "topo_edits_011818.nc"
-#override CHANNEL_LIST_FILE = MOM_channels_SPEAR
-RESTART_CONTROL = 2
-NUM_DIAG_COORDS = 2             ! default = 1
-                                ! The number of diagnostic vertical coordinates to use.
-                                ! For each coordinate, an entry in DIAG_COORDS must be provided.
-DIAG_COORDS = "z Z ZSTAR", "rho2 RHO2 RHO" !
-
-DIAG_COORD_DEF_RHO2 = "RFNC1:35,999.5,1028,1028.5,8.,1038.,0.0078125" ! default = "WOA09"
-                                ! Determines how to specify the coordinate
-                                ! resolution. Valid options are:
-                                !  PARAM       - use the vector-parameter DIAG_COORD_RES_RHO2
-                                !  UNIFORM[:N] - uniformly distributed
-                                !  FILE:string - read from a file. The string specifies
-                                !                the filename and variable name, separated
-                                !                by a comma or space, e.g. FILE:lev.nc,dz
-                                !                or FILE:lev.nc,interfaces=zw
-                                !  WOA09[:N]   - the WOA09 vertical grid (approximately)
-                                !  FNC1:string - FNC1:dz_min,H_total,power,precision
-                                !  HYBRID:string - read from a file. The string specifies
-                                !                the filename and two variable names, separated
-                                !                by a comma or space, for sigma-2 and dz. e.g.
-                                !                HYBRID:vgrid.nc,sigma2,dz
-
-EOF
-
-cat > $workDir/INPUT/MOM_override_01 << EOF
-#override TOPO_EDITS_FILE = "topo_edits_011818.nc"
-#override CHANNEL_LIST_FILE = MOM_channels_SPEAR
-#override MIXEDLAYER_RESTRAT = False
-ENSEMBLE_OCEAN = True
-RESTART_CONTROL = 2
-NUM_DIAG_COORDS = 3             ! default = 1
-                                ! The number of diagnostic vertical coordinates to use.
-                                ! For each coordinate, an entry in DIAG_COORDS must be provided.
-DIAG_COORDS = "z Z ZSTAR, rho2 RHO2 RHO, ztop ZTOP300 ZSTAR"
-
-DIAG_COORD_DEF_RHO2 = "RFNC1:35,999.5,1028,1028.5,8.,1038.,0.0078125" ! default = "WOA09"
-DIAG_COORD_DEF_ZTOP300 =  "UNIFORM:2,600."
-                                ! Determines how to specify the coordinate
-                                ! resolution. Valid options are:
-                                !  PARAM       - use the vector-parameter DIAG_COORD_RES_RHO2
-                                !  UNIFORM[:N] - uniformly distributed
-                                !  FILE:string - read from a file. The string specifies
-                                !                the filename and variable name, separated
-                                !                by a comma or space, e.g. FILE:lev.nc,dz
-                                !                or FILE:lev.nc,interfaces=zw
-                                !  WOA09[:N]   - the WOA09 vertical grid (approximately)
-                                !  FNC1:string - FNC1:dz_min,H_total,power,precision
-                                !  HYBRID:string - read from a file. The string specifies
-                                !                the filename and two variable names, separated
-                                !                by a comma or space, for sigma-2 and dz. e.g.
-                                !                HYBRID:vgrid.nc,sigma2,dz
-
-EOF
-
-set ENS_I = 2
-while ( $ENS_I <= 9 )
-	cp $workDir/INPUT/MOM_override_01 $workDir/INPUT/MOM_override_0$ENS_I
-	@ ENS_I++
-end
-set ENS_I = 10
-while ( $ENS_I <= 30 )
-	cp $workDir/INPUT/MOM_override_01 $workDir/INPUT/MOM_override_$ENS_I
-	@ ENS_I++
-end
-
-touch $workDir/INPUT/SIS_override
-
-cat > $workDir/INPUT/SIS_override << EOF
-#override CP_SEAWATER = 3992.
-#override CP_BRINE = 3992.
-#override ICE_BULK_SALINITY = 0.0
-#override ICE_RELATIVE_SALINITY = 0.17
-#override SIS2_FILLING_FRAZIL = T
-#override SIS_THICKNESS_ADVECTION_SCHEME = "PCM"
-#override SIS_CONTINUITY_SCHEME = "PCM"
-#override SIS_TRACER_ADVECTION_SCHEME = "PPM:H3"
-EOF
-
-#scan auxiliary_nml
-#set OCN_MASK_TABLE =
-#set OCN_MASK_TABLE = `awk '/ocean_mask_table/ {gsub(/=/," ");gsub(/,/," ");print $2}' $workDir/input.nml`
-#set OCN_LAYOUT     = `awk '/ocean_layout/     {gsub(/=/," ");           print $2,$3}' $workDir/input.nml`
-#set OCN_IO_LAYOUT  = `awk '/ocean_io_layout/  {gsub(/=/," ");           print $2,$3}' $workDir/input.nml`
-
-cat > $workDir/INPUT/MOM_layout << MOM_LAYOUT_EOF
-#override IO_LAYOUT = $ocn_io_layout
-#override LAYOUT    = $ocn_layout
-#override MASKTABLE = $ocn_mask_table
-MOM_LAYOUT_EOF
-
-#scan auxiliary_nml
-#set ICE_MASK_TABLE = `awk '/ice_mask_table/ {gsub(/=/," ");gsub(/,/," ");print $2}' $workDir/input.nml`
-#set ICE_LAYOUT     = `awk '/ice_layout/     {gsub(/=/," ");           print $2,$3}' $workDir/input.nml`
-#set ICE_IO_LAYOUT  = `awk '/ice_io_layout/  {gsub(/=/," ");           print $2,$3}' $workDir/input.nml`
-
-cat > $workDir/INPUT/SIS_layout << SIS_LAYOUT_EOF
-#override IO_LAYOUT = $ice_io_layout
-#override LAYOUT    = $ice_layout
-#override MASKTABLE = $ocn_mask_table
-SIS_LAYOUT_EOF
-
-######END MOM6 and SIS2 layout setup################
-
-cd $workDir/INPUT
-
-if ( $currentSeg == 1 ) then
-     rm -f coupler.res
-endif
-cd $workDir
-
-#------------------------------------------
-## Find out whether to restart.
-# MOM6 restart switch
-if ( $currentSeg == 1 ) then
-   set restart_flag = 'n'
-else
-   set restart_flag = 'r'
-endif
-   set sis_restart_flag = 'r'
-
-cd $workDir
-
-## Run the model
-#------------------------------------------
-###The following vars are set for the timing database ingestion tool only and are not necessary for a successful run
-set OCN_MASK_TABLE  =  $ocn_mask_table
-set OCN_LAYOUT    = $ocn_layout
-set OCN_IO_LAYOUT = $ocn_io_layout
-set ICE_LAYOUT    = $ice_layout
-set ICE_IO_LAYOUT = $ice_io_layout
-set atmos_npes = $atm_ranks
-set ocean_npes = $ocn_ranks
-set fv_layout = $atm_layout
-set fv_io_layout  = $atm_io_layout
-set land_layout   = $lnd_layout
-set land_io_layout = $lnd_io_layout
-set dummy  = `awk '/nxblocks/ {gsub(/=/," ");gsub(/,/," ");print $2}' $workDir/input.nml`
-set nxblocks = $dummy
-set dummy  = `awk '/nyblocks/ {gsub(/=/," ");gsub(/,/," ");print $2}' $workDir/input.nml`
-set nyblocks = $dummy
-
-   cd $workDir
 
    # ---------------- expand namelists
     
